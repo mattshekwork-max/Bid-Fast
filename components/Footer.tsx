@@ -18,8 +18,8 @@ export function Footer() {
           </nav>
           <p className="text-xs text-muted-foreground">
             &copy; {new Date().getFullYear()} Bid.Fast &mdash; Built with{" "}
-            <a href="https://saasopportunities.com" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors underline">
-              SaasOpportunities.com
+            <a href="https://heliostacktechnologies.com" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors underline">
+              HelioStack Technologies
             </a>
           </p>
         </div>

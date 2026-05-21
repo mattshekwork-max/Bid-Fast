@@ -192,7 +192,7 @@ export default function ClientEstimateView({ estimate, lineItems, materials }: P
           )}
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-12">Powered by Bid.Fast · Built with SaasOpportunities.com</p>
+        <p className="text-center text-xs text-gray-400 mt-12">Powered by Bid.Fast · Built with HelioStack Technologies</p>
       </div>
     </div>
   );
