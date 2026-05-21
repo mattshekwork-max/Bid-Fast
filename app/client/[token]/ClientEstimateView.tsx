@@ -53,10 +53,10 @@ export default function ClientEstimateView({ estimate, lineItems, materials }: P
         <div className="flex items-start justify-between mb-8">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-7 h-7 rounded-[6px] bg-[#1E3A5F] flex items-center justify-center">
+              <div className="w-7 h-7 rounded-[6px] bg-[#065f46] flex items-center justify-center">
                 <span className="text-white text-xs font-bold">BF</span>
               </div>
-              <span className="font-bold text-[#1E3A5F]">Bid.Fast</span>
+              <span className="font-bold text-[#065f46]">Bid.Fast</span>
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mt-3">{estimate.title}</h1>
             {estimate.client_name && <p className="text-sm text-gray-500 mt-1">Prepared for {estimate.client_name}</p>}
@@ -136,7 +136,7 @@ export default function ClientEstimateView({ estimate, lineItems, materials }: P
           )}
 
           {/* Grand Total */}
-          <div className="bg-[#1E3A5F] rounded-[6px] p-6 flex items-center justify-between">
+          <div className="bg-[#065f46] rounded-[6px] p-6 flex items-center justify-between">
             <span className="text-white font-semibold">Grand Total</span>
             <span className="text-3xl font-bold text-white tabular-nums">${Number(estimate.total_cost).toLocaleString()}</span>
           </div>
@@ -168,7 +168,7 @@ export default function ClientEstimateView({ estimate, lineItems, materials }: P
                 <button
                   onClick={() => respond("accepted")}
                   disabled={responding}
-                  className="flex-1 h-11 text-sm font-semibold bg-[#E05A1A] hover:bg-[#c94e17] disabled:opacity-50 text-white rounded-[6px] uppercase tracking-wide transition-colors"
+                  className="flex-1 h-11 text-sm font-semibold bg-[#00a982] hover:bg-[#009970] disabled:opacity-50 text-white rounded-[6px] uppercase tracking-wide transition-colors"
                 >
                   {responding ? "Submitting…" : "Accept Estimate"}
                 </button>

@@ -74,7 +74,7 @@ export default function EstimateActions({ estimateId, status, clientEmail }: Pro
           <button
             onClick={handleSend}
             disabled={sending}
-            className="h-9 px-4 text-sm font-medium bg-[#0C1F3D] hover:bg-[#071529] disabled:opacity-50 text-white rounded-lg transition-colors"
+            className="h-9 px-4 text-sm font-medium bg-[#11161f] hover:bg-[#071529] disabled:opacity-50 text-white rounded-lg transition-colors"
           >
             {sending ? "Sending…" : "Send to Client"}
           </button>
@@ -150,7 +150,7 @@ export default function EstimateActions({ estimateId, status, clientEmail }: Pro
               <button onClick={() => copyMaterials("csv")} className="flex-1 h-9 text-sm font-medium border border-gray-200 hover:bg-gray-50 rounded-lg">
                 Copy CSV
               </button>
-              <button onClick={handleShare} className="flex-1 h-9 text-sm font-medium bg-[#F97316] hover:bg-[#ea6c0a] text-white rounded-lg">
+              <button onClick={handleShare} className="flex-1 h-9 text-sm font-medium bg-[#00a982] hover:bg-[#009970] text-white rounded-lg">
                 Share
               </button>
             </div>

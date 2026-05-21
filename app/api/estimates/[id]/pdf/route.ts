@@ -68,14 +68,14 @@ export async function GET(request: NextRequest, { params }: { params: Params }) 
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 12px; color: #111; padding: 40px; max-width: 800px; margin: 0 auto; }
-  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #1E3A5F; }
-  .brand { font-size: 20px; font-weight: 800; color: #1E3A5F; letter-spacing: -0.5px; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #065f46; }
+  .brand { font-size: 20px; font-weight: 800; color: #065f46; letter-spacing: -0.5px; }
   .brand span { color: #E05A1A; }
   .meta { text-align: right; color: #6B7280; font-size: 11px; }
-  .title { font-size: 18px; font-weight: 700; color: #1E3A5F; margin-bottom: 4px; }
+  .title { font-size: 18px; font-weight: 700; color: #065f46; margin-bottom: 4px; }
   .status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; text-transform: uppercase; background: #F3F4F6; color: #6B7280; }
   section { margin-bottom: 24px; }
-  h2 { font-size: 13px; font-weight: 700; color: #1E3A5F; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  h2 { font-size: 13px; font-weight: 700; color: #065f46; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
   table { width: 100%; border-collapse: collapse; }
   th { text-align: left; font-size: 10px; font-weight: 600; color: #9CA3AF; text-transform: uppercase; padding: 6px 8px; border-bottom: 1px solid #E5E7EB; }
   td { padding: 8px; border-bottom: 1px solid #F3F4F6; font-size: 11px; vertical-align: top; }
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest, { params }: { params: Params }) 
   .bold { font-weight: 600; }
   .supplier { color: #9CA3AF; font-size: 10px; }
   tfoot td { font-weight: 600; color: #374151; border-bottom: none; border-top: 1px solid #E5E7EB; padding-top: 10px; }
-  .total-box { background: #1E3A5F; color: white; padding: 16px 20px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+  .total-box { background: #065f46; color: white; padding: 16px 20px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
   .total-box .label { font-size: 13px; font-weight: 600; }
   .total-box .amount { font-size: 24px; font-weight: 800; }
   .notes { background: #F9FAFB; padding: 12px 16px; border-radius: 6px; font-size: 11px; color: #6B7280; line-height: 1.6; }

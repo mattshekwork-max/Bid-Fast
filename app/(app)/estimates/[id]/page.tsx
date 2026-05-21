@@ -163,7 +163,7 @@ export default async function EstimatePage({ params }: { params: Params }) {
         </div>
 
         {/* Grand Total */}
-        <div className="bg-[#1E3A5F] rounded-[6px] p-6 flex items-center justify-between">
+        <div className="bg-[#065f46] rounded-[6px] p-6 flex items-center justify-between">
           <span className="text-white font-semibold">Grand Total</span>
           <span className="text-3xl font-bold text-white tabular-nums">${Number(estimate.total_cost).toLocaleString()}</span>
         </div>
