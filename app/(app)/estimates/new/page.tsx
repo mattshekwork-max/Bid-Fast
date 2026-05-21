@@ -89,6 +89,11 @@ export default function NewEstimatePage() {
         body: JSON.stringify({ transcript }),
       });
       const json = await res.json();
+      if (res.status === 403 && json.upgrade) {
+        setErrorMsg(json.error + " Go to Settings → Billing to upgrade.");
+        setState("error");
+        return;
+      }
       if (!res.ok) throw new Error(json.error ?? "Generation failed");
       router.push(`/estimates/${json.estimateId}`);
     } catch (err) {

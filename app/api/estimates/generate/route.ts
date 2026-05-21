@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Groq from "groq-sdk";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { FREE_TIER_LIMIT } from "@/lib/stripe";
 import { createEstimate, replaceLineItems, replaceMaterials } from "@/lib/estimates";
 
 // Uses Groq LLaMA 3.3 70B for estimate generation (same API key as Whisper transcription)
@@ -115,13 +116,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  // Fetch user's custom pricing config (falls back to defaults if not set)
   const admin = getSupabaseAdmin();
-  const { data: userData } = await admin
-    .from("users")
-    .select("pricing_config")
-    .eq("id", user.id)
-    .single();
+
+  // Check subscription + free tier limit
+  const [{ data: userData }, { count: estimateCount }] = await Promise.all([
+    admin.from("users").select("pricing_config, subscription_status").eq("id", user.id).single(),
+    admin.from("estimates").select("*", { count: "exact", head: true }).eq("user_id", user.id),
+  ]);
+
+  const isPro = userData?.subscription_status === "pro";
+  if (!isPro && (estimateCount ?? 0) >= FREE_TIER_LIMIT) {
+    return NextResponse.json(
+      { error: `Free plan limit reached (${FREE_TIER_LIMIT} estimates). Upgrade to Pro for unlimited estimates.`, upgrade: true },
+      { status: 403 }
+    );
+  }
   const pricingConfig = (userData?.pricing_config as Record<string, unknown> | null) ?? null;
   const systemPrompt = buildSystemPrompt(pricingConfig);
 
