@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
 import { createClient } from "@/lib/supabase/server";
 import { createEstimate, replaceLineItems, replaceMaterials } from "@/lib/estimates";
+
+// Uses Groq LLaMA 3.3 70B for estimate generation (same API key as Whisper transcription)
 
 const SYSTEM_PROMPT = `You are a professional trade estimating assistant. You parse voice transcripts from contractors — electricians, plumbers, HVAC techs, tile setters, carpenters, drywall crews, and other skilled trades — and produce structured job estimates.
 
@@ -54,8 +56,8 @@ Output ONLY valid JSON matching this schema exactly (no markdown, no extra text)
 }`;
 
 export async function POST(request: NextRequest) {
-  if (!process.env.GEMINI_API_KEY) {
-    return NextResponse.json({ error: "GEMINI_API_KEY is not configured" }, { status: 500 });
+  if (!process.env.GROQ_API_KEY) {
+    return NextResponse.json({ error: "GROQ_API_KEY is not configured" }, { status: 500 });
   }
 
   const supabase = await createClient();
@@ -104,15 +106,19 @@ export async function POST(request: NextRequest) {
   };
 
   try {
-    const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    const model = genai.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const result = await model.generateContent([
-      SYSTEM_PROMPT,
-      `\n\nVoice transcript from contractor:\n\n${voice_transcript}`,
-    ]);
-    const text = result.response.text().trim();
-    const jsonStr = text.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim();
-    parsed = JSON.parse(jsonStr);
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: `Voice transcript from contractor:\n\n${voice_transcript}` },
+      ],
+      temperature: 0.2,
+      response_format: { type: "json_object" },
+    });
+
+    const text = completion.choices[0]?.message?.content ?? "";
+    parsed = JSON.parse(text);
   } catch (err) {
     const message = err instanceof Error ? err.message : "AI generation failed";
     return NextResponse.json({ error: message }, { status: 500 });
