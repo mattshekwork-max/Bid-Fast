@@ -1,49 +1,65 @@
-# CatchFlow — CLAUDE.md
+# Bid.Fast — CLAUDE.md
 
-## Project Overview
-CatchFlow is a missed-opportunity follow-up queue for small service businesses. It ingests leads (email, missed calls, texts), runs AI classification (urgency + intent via Groq), generates summaries + suggested replies (Gemini), and presents a prioritized queue dashboard.
+## Product Overview
+Bid.Fast is a voice-to-estimate tool for trade contractors. Record a job walkthrough, get a complete estimate (labor + materials) in seconds, and send it to the client with a built-in Accept/Decline link.
 
 ## Tech Stack
 - Next.js 16 (App Router, Turbopack dev)
-- Supabase (Postgres + Auth, instance: otztmrxfdaxfdxqlshht)
-- Tailwind v4 + shadcn/ui + Radix primitives
-- React Query (@tanstack/react-query) — all data fetching through hooks
-- Framer Motion — UI animations
-- Groq (llama-3.1-8b-instant) — urgency classification
-- Gemini 1.5 Flash — lead summarization
+- Supabase (Postgres + Auth)
+- Tailwind v4 + Radix primitives
+- Groq (Whisper) — voice transcription
+- Gemini 1.5 Flash — estimate generation from transcript
+- Framer Motion — available but used sparingly
 
 ## Commands
-- `pnpm dev` — dev server on :3000 (Turbopack)
-- `pnpm build` — production build
-- `pnpm lint` — ESLint
+- `npm run dev` — dev server on :3000 (Turbopack)
+- `npm run build` — production build
+- `npm run lint` — ESLint
 
 ## Project Structure
 - `app/` — Next.js App Router pages + API routes
-- `app/api/` — REST API (service role client, bypasses RLS)
-- `app/dashboard/` — Authenticated dashboard UI
-- `lib/ai/` — Groq + Gemini AI pipelines
-- `lib/hooks/` — React Query hooks (always use these, never fetch directly)
+- `app/(app)/` — Authenticated app routes (dashboard, estimates)
+- `app/client/[token]/` — Public client estimate view (no auth)
+- `app/api/estimates/` — Estimate CRUD + generate + send + respond + pdf + materials
+- `app/api/transcribe/` — Audio → transcript via Groq Whisper
+- `lib/estimates.ts` — Server actions for estimates, line items, materials
 - `lib/supabase/` — Supabase clients (server, browser, service-role)
-- `lib/constants.ts` — DEMO_WORKSPACE_ID, urgency color scale, badge configs
 - `types/database.ts` — TypeScript types matching Supabase schema
 
 ## Conventions
-- All API routes use service role client (webhooks need to bypass RLS)
-- Every route validates workspace_id
-- AI failures return partial/default results, never crash the ingest
-- React Query for all client-side data fetching — 30s refetch on queue
-- Dark theme by default (next-themes)
-- Teal brand color (#0d9488)
-- Urgency color scale: 1-3 green, 4-6 amber, 7-8 orange, 9-10 red (9-10 pulses)
-- Route handlers use Next.js 16 pattern: params as Promise
+- API routes use service role client where ownership is already verified
+- All Supabase queries check `{ data, error }` — never destructure only data
+- Server actions return `{ data, error }`
+- Pages display a visible error message, not silent empty state
+- No middleware.ts edits
+- Route handlers use Next.js 16 pattern: `params as Promise`
+- Dark dashboard nav, light landing/auth pages
 
 ## Database
-Schema in `supabase-schema.sql`. Tables: workspaces, users, leads, follow_ups, email_events.
-RLS enabled on all tables. Service role bypasses RLS for API routes.
+Schema in `supabase-schema.sql`. Tables: users, estimates, estimate_line_items, material_list_items, voice_sessions.
+RLS enabled on all tables. Service role bypasses RLS for admin operations.
 
-## AI Pipeline
-Ingest flow: email_event → store raw → Groq classify (urgency + intent) → Gemini summarize → upsert lead → auto-create follow_up if urgency ≥ 7
-Both AI calls run in parallel with 15s timeout. Graceful fallback on failure.
+## Auth Flow
+- `/login` → `supabase.auth.signInWithPassword` → redirect `/dashboard`
+- `/signup` → `supabase.auth.signUp` → redirect `/dashboard`
+- `app/(app)/layout.tsx` → checks `supabase.auth.getUser()`, redirects to `/login` if unauthenticated
+- Sign-out: POST `/api/auth/signout`
+
+## Core Feature Flow
+1. `/estimates/new` — MediaRecorder records audio → POST `/api/transcribe` → review transcript
+2. "Generate Estimate" → POST `/api/estimates/generate` → Gemini parses transcript → saves estimate + line items + materials → redirect `/estimates/[id]`
+3. `/estimates/[id]` — view estimate, actions: Send to Client, Export Materials, Download PDF
+4. "Send to Client" → POST `/api/estimates/[id]/send` → generates client_token, sets status=sent, returns public URL
+5. `/client/[token]` — public view, Accept/Decline → POST `/api/estimates/[id]/respond`
+6. "Download PDF" → GET `/api/estimates/[id]/pdf` → print-ready HTML (browser Print→Save as PDF)
 
 ## Environment Variables
-See `.env` — requires: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, GROQ_API_KEY, GEMINI_API_KEY
+See `.env.example`. Required: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, GROQ_API_KEY, GEMINI_API_KEY
+Optional: RESEND_API_KEY (email client send), NEXT_PUBLIC_APP_URL
+
+## Brand
+- Name: Bid.Fast
+- Primary: #F97316 (amber/orange)
+- Navy: #0C1F3D
+- Monospace initials: BF
+- Footer: "Built with SaasOpportunities.com"

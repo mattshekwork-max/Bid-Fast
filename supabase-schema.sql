@@ -1,159 +1,159 @@
--- CatchFlow Database Schema
--- Run this in Supabase SQL Editor
+-- Bid.Fast schema
+-- Run this in your Supabase SQL editor to set up the database.
+-- RLS is enabled on all tables with owner-only access policies.
 
--- Workspaces
-CREATE TABLE IF NOT EXISTS workspaces (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+-- Enable UUID extension (used by Supabase Auth)
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- ============================================================
+-- TABLES
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS users (
+  id VARCHAR(255) PRIMARY KEY,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  first_name VARCHAR(100),
+  last_name VARCHAR(100),
+  role VARCHAR(20) DEFAULT 'user',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  stripe_customer_id VARCHAR(255),
+  stripe_subscription_id VARCHAR(255),
+  subscription_status VARCHAR(20) DEFAULT 'free',
+  subscription_ends_at TIMESTAMPTZ,
+  subscription_created_at TIMESTAMPTZ
 );
+CREATE INDEX IF NOT EXISTS users_subscription_status_idx ON users(subscription_status);
 
--- Users (extends auth.users)
-CREATE TABLE IF NOT EXISTS public.users (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  email TEXT NOT NULL,
-  workspace_id UUID REFERENCES workspaces(id) ON DELETE SET NULL,
-  full_name TEXT,
-  role TEXT DEFAULT 'member',
-  created_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE IF NOT EXISTS estimates (
+  id SERIAL PRIMARY KEY,
+  user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title VARCHAR(500) NOT NULL,
+  voice_transcript TEXT NOT NULL,
+  parsed_description TEXT,
+  status VARCHAR(30) NOT NULL DEFAULT 'draft',
+  total_labor_cost NUMERIC(12,2) NOT NULL DEFAULT 0,
+  total_material_cost NUMERIC(12,2) NOT NULL DEFAULT 0,
+  total_cost NUMERIC(12,2) NOT NULL DEFAULT 0,
+  client_name VARCHAR(255),
+  client_email VARCHAR(255),
+  client_phone VARCHAR(50),
+  pdf_url TEXT,
+  client_token VARCHAR(255),
+  client_response VARCHAR(20),
+  client_responded_at TIMESTAMPTZ,
+  sent_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+CREATE INDEX IF NOT EXISTS estimates_user_id_idx ON estimates(user_id);
+CREATE INDEX IF NOT EXISTS estimates_status_idx ON estimates(status);
+CREATE INDEX IF NOT EXISTS estimates_client_token_idx ON estimates(client_token);
+CREATE INDEX IF NOT EXISTS estimates_created_at_idx ON estimates(created_at DESC);
 
--- Leads
-CREATE TABLE IF NOT EXISTS leads (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-  name TEXT,
-  email TEXT,
-  phone TEXT,
-  company TEXT,
-  source TEXT NOT NULL DEFAULT 'email', -- email | missed_call | text | manual
-  status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'contacted', 'qualified', 'lost', 'won')),
-  urgency_score INTEGER CHECK (urgency_score >= 1 AND urgency_score <= 10),
-  urgency_reason TEXT,
-  intent TEXT, -- quote | booking | info | complaint | other
-  language TEXT DEFAULT 'en',
-  summary TEXT,
-  subject_line TEXT,
-  suggested_reply TEXT,
-  last_activity_at TIMESTAMPTZ DEFAULT NOW(),
-  created_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE IF NOT EXISTS estimate_line_items (
+  id SERIAL PRIMARY KEY,
+  estimate_id INTEGER NOT NULL REFERENCES estimates(id) ON DELETE CASCADE,
+  category VARCHAR(50) NOT NULL DEFAULT 'general',
+  description TEXT NOT NULL,
+  quantity NUMERIC(10,2) NOT NULL DEFAULT 1,
+  unit VARCHAR(30) NOT NULL DEFAULT 'each',
+  unit_cost NUMERIC(12,2) NOT NULL DEFAULT 0,
+  total_cost NUMERIC(12,2) NOT NULL DEFAULT 0,
+  item_type VARCHAR(20) NOT NULL DEFAULT 'labor',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+CREATE INDEX IF NOT EXISTS estimate_line_items_estimate_id_idx ON estimate_line_items(estimate_id);
+CREATE INDEX IF NOT EXISTS estimate_line_items_item_type_idx ON estimate_line_items(item_type);
 
--- Follow-ups
-CREATE TABLE IF NOT EXISTS follow_ups (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  lead_id UUID NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
-  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-  type TEXT NOT NULL DEFAULT 'email' CHECK (type IN ('email', 'call', 'text')),
-  priority TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('urgent', 'high', 'medium', 'low')),
-  due_at TIMESTAMPTZ,
-  completed_at TIMESTAMPTZ,
-  notes TEXT,
-  outcome TEXT, -- completed | skipped | no_answer | bad_info
-  created_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE IF NOT EXISTS material_list_items (
+  id SERIAL PRIMARY KEY,
+  estimate_id INTEGER NOT NULL REFERENCES estimates(id) ON DELETE CASCADE,
+  material_name VARCHAR(500) NOT NULL,
+  quantity NUMERIC(10,2) NOT NULL DEFAULT 1,
+  unit VARCHAR(30) NOT NULL DEFAULT 'each',
+  unit_price NUMERIC(12,2) NOT NULL DEFAULT 0,
+  total_price NUMERIC(12,2) NOT NULL DEFAULT 0,
+  supplier_note TEXT,
+  exported BOOLEAN NOT NULL DEFAULT FALSE,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+CREATE INDEX IF NOT EXISTS material_list_items_estimate_id_idx ON material_list_items(estimate_id);
 
--- Email events (raw ingest)
-CREATE TABLE IF NOT EXISTS email_events (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-  lead_id UUID REFERENCES leads(id) ON DELETE SET NULL,
-  direction TEXT NOT NULL CHECK (direction IN ('inbound', 'outbound')),
-  from_address TEXT,
-  to_address TEXT,
-  subject TEXT,
-  body_text TEXT,
-  body_html TEXT,
-  message_id TEXT,
-  in_reply_to TEXT,
-  processed BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE IF NOT EXISTS voice_sessions (
+  id SERIAL PRIMARY KEY,
+  user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  estimate_id INTEGER REFERENCES estimates(id) ON DELETE SET NULL,
+  audio_url TEXT,
+  raw_transcript TEXT NOT NULL,
+  ai_parsed_json JSONB,
+  session_type VARCHAR(30) NOT NULL DEFAULT 'new_estimate',
+  duration_seconds INTEGER,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+CREATE INDEX IF NOT EXISTS voice_sessions_user_id_idx ON voice_sessions(user_id);
+CREATE INDEX IF NOT EXISTS voice_sessions_estimate_id_idx ON voice_sessions(estimate_id);
+CREATE INDEX IF NOT EXISTS voice_sessions_created_at_idx ON voice_sessions(created_at DESC);
 
--- Indexes
-CREATE INDEX IF NOT EXISTS leads_workspace_id_idx ON leads(workspace_id);
-CREATE INDEX IF NOT EXISTS leads_status_idx ON leads(status);
-CREATE INDEX IF NOT EXISTS leads_urgency_score_idx ON leads(urgency_score DESC);
-CREATE INDEX IF NOT EXISTS leads_last_activity_at_idx ON leads(last_activity_at DESC);
-CREATE INDEX IF NOT EXISTS follow_ups_lead_id_idx ON follow_ups(lead_id);
-CREATE INDEX IF NOT EXISTS follow_ups_workspace_id_idx ON follow_ups(workspace_id);
-CREATE INDEX IF NOT EXISTS follow_ups_priority_idx ON follow_ups(priority);
-CREATE INDEX IF NOT EXISTS email_events_workspace_id_idx ON email_events(workspace_id);
-CREATE INDEX IF NOT EXISTS email_events_processed_idx ON email_events(processed);
+-- ============================================================
+-- ROW LEVEL SECURITY
+-- ============================================================
 
--- Row Level Security
-ALTER TABLE workspaces ENABLE ROW LEVEL SECURITY;
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
-ALTER TABLE follow_ups ENABLE ROW LEVEL SECURITY;
-ALTER TABLE email_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE estimates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE estimate_line_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE material_list_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE voice_sessions ENABLE ROW LEVEL SECURITY;
 
--- Workspaces policies
-CREATE POLICY "Users can view own workspace" ON workspaces
-  FOR SELECT USING (id IN (SELECT workspace_id FROM public.users WHERE id = auth.uid()));
+-- users: owner-only
+CREATE POLICY "users_select_own" ON users FOR SELECT USING (auth.uid()::text = id);
+CREATE POLICY "users_insert_own" ON users FOR INSERT WITH CHECK (auth.uid()::text = id);
+CREATE POLICY "users_update_own" ON users FOR UPDATE USING (auth.uid()::text = id);
 
-CREATE POLICY "Users can insert own workspace" ON workspaces
-  FOR INSERT WITH CHECK (true);
+-- estimates: owner-only (service role bypasses RLS for client_token lookups)
+CREATE POLICY "estimates_select_own" ON estimates FOR SELECT USING (auth.uid()::text = user_id);
+CREATE POLICY "estimates_insert_own" ON estimates FOR INSERT WITH CHECK (auth.uid()::text = user_id);
+CREATE POLICY "estimates_update_own" ON estimates FOR UPDATE USING (auth.uid()::text = user_id);
+CREATE POLICY "estimates_delete_own" ON estimates FOR DELETE USING (auth.uid()::text = user_id);
 
--- Users policies
-CREATE POLICY "Users can view own data" ON public.users
-  FOR SELECT USING (id = auth.uid());
+-- estimate_line_items: access via parent estimate ownership
+CREATE POLICY "line_items_select_own" ON estimate_line_items FOR SELECT
+  USING (estimate_id IN (SELECT id FROM estimates WHERE user_id = auth.uid()::text));
+CREATE POLICY "line_items_insert_own" ON estimate_line_items FOR INSERT
+  WITH CHECK (estimate_id IN (SELECT id FROM estimates WHERE user_id = auth.uid()::text));
+CREATE POLICY "line_items_update_own" ON estimate_line_items FOR UPDATE
+  USING (estimate_id IN (SELECT id FROM estimates WHERE user_id = auth.uid()::text));
+CREATE POLICY "line_items_delete_own" ON estimate_line_items FOR DELETE
+  USING (estimate_id IN (SELECT id FROM estimates WHERE user_id = auth.uid()::text));
 
-CREATE POLICY "Users can update own data" ON public.users
-  FOR UPDATE USING (id = auth.uid());
+-- material_list_items: access via parent estimate ownership
+CREATE POLICY "materials_select_own" ON material_list_items FOR SELECT
+  USING (estimate_id IN (SELECT id FROM estimates WHERE user_id = auth.uid()::text));
+CREATE POLICY "materials_insert_own" ON material_list_items FOR INSERT
+  WITH CHECK (estimate_id IN (SELECT id FROM estimates WHERE user_id = auth.uid()::text));
+CREATE POLICY "materials_update_own" ON material_list_items FOR UPDATE
+  USING (estimate_id IN (SELECT id FROM estimates WHERE user_id = auth.uid()::text));
+CREATE POLICY "materials_delete_own" ON material_list_items FOR DELETE
+  USING (estimate_id IN (SELECT id FROM estimates WHERE user_id = auth.uid()::text));
 
-CREATE POLICY "Users can insert own data" ON public.users
-  FOR INSERT WITH CHECK (id = auth.uid());
+-- voice_sessions: owner-only
+CREATE POLICY "voice_sessions_select_own" ON voice_sessions FOR SELECT USING (auth.uid()::text = user_id);
+CREATE POLICY "voice_sessions_insert_own" ON voice_sessions FOR INSERT WITH CHECK (auth.uid()::text = user_id);
+CREATE POLICY "voice_sessions_delete_own" ON voice_sessions FOR DELETE USING (auth.uid()::text = user_id);
 
--- Leads policies
-CREATE POLICY "Users can manage own workspace leads" ON leads
-  FOR ALL USING (workspace_id IN (SELECT workspace_id FROM public.users WHERE id = auth.uid()));
+-- ============================================================
+-- AUTO-UPDATE updated_at
+-- ============================================================
 
--- Follow-ups policies
-CREATE POLICY "Users can manage own workspace follow_ups" ON follow_ups
-  FOR ALL USING (workspace_id IN (SELECT workspace_id FROM public.users WHERE id = auth.uid()));
-
--- Email events policies
-CREATE POLICY "Users can view own workspace email events" ON email_events
-  FOR SELECT USING (workspace_id IN (SELECT workspace_id FROM public.users WHERE id = auth.uid()));
-
-CREATE POLICY "Service role can insert email events" ON email_events
-  FOR INSERT WITH CHECK (true);
-
--- Function: auto-create user row on signup
-CREATE OR REPLACE FUNCTION public.handle_new_user()
+CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.users (id, email, workspace_id)
-  VALUES (
-    NEW.id,
-    NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'workspace_id', NULL)
-  );
-  -- Create default workspace for new user
-  INSERT INTO workspaces (id, name)
-  VALUES (
-    gen_random_uuid(),
-    COALESCE(NEW.raw_user_meta_data->>'workspace_name', NEW.email || '''s Workspace')
-  )
-  ON CONFLICT DO NOTHING;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-
--- Function: update last_activity_at on lead changes
-CREATE OR REPLACE FUNCTION update_lead_activity()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.last_activity_at = NOW();
+  NEW.updated_at = NOW();
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER leads_last_activity
-  BEFORE UPDATE ON leads
-  FOR EACH ROW EXECUTE FUNCTION update_lead_activity();
+CREATE TRIGGER estimates_updated_at
+  BEFORE UPDATE ON estimates
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

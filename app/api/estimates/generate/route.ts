@@ -1,0 +1,150 @@
+import { NextRequest, NextResponse } from "next/server";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { createClient } from "@/lib/supabase/server";
+import { createEstimate, replaceLineItems, replaceMaterials } from "@/lib/estimates";
+
+const SYSTEM_PROMPT = `You are a professional trade estimating assistant. You parse voice transcripts from contractors — electricians, plumbers, HVAC techs, tile setters, carpenters, drywall crews, and other skilled trades — and produce structured job estimates.
+
+Trade vocabulary you understand (non-exhaustive):
+- Electrical: Romex (NM-B), THHN, EMT conduit, 200A panel, breaker, junction box, GFCI, arc-fault, service entrance, load center
+- Plumbing: PEX, CPVC, copper, SharkBite, P-trap, ball valve, gate valve, PRV, water heater, manifold, rough-in
+- HVAC: ton, SEER, mini-split, air handler, condenser, lineset, plenum, flex duct, RTU, damper
+- Drywall: 5/8 rock, 1/2 sheet, green board, blueboard, corner bead, taping mud, texture
+- Tile: subway tile, LVP, Schluter, thinset, grout, membrane, backerboard, mud bed
+- General: OSB, LVL beam, joist hanger, lag bolt, Simpson tie, flashing, housewrap
+
+Pricing guidance (use realistic US regional averages, ±20%):
+- Electrician labor: $85–$125/hr
+- Plumber labor: $90–$130/hr
+- HVAC tech labor: $80–$120/hr
+- Tile setter: $65–$95/hr
+- Drywall crew: $50–$80/hr
+- General laborer: $35–$55/hr
+- Always include a 10–15% materials markup unless transcript indicates otherwise
+
+Output ONLY valid JSON matching this schema exactly (no markdown, no extra text):
+{
+  "title": "string — short job description, e.g. 'Panel Upgrade 200A'",
+  "client_name": "string | null",
+  "client_email": "string | null",
+  "parsed_description": "string | null — special conditions, exclusions, or assumptions",
+  "line_items": [
+    {
+      "description": "string",
+      "quantity": number,
+      "unit": "hr | ea | lf | sf | ls | sq | day",
+      "unit_cost": number,
+      "total_cost": number,
+      "category": "string — trade category e.g. electrical, plumbing, hvac, tile, drywall, general",
+      "item_type": "labor | material"
+    }
+  ],
+  "materials": [
+    {
+      "material_name": "string",
+      "quantity": number,
+      "unit": "ea | lf | sf | box | roll | bag | sheet | gal",
+      "unit_price": number,
+      "total_price": number,
+      "supplier_note": "string | null"
+    }
+  ],
+  "total_labor_cost": number,
+  "total_material_cost": number
+}`;
+
+export async function POST(request: NextRequest) {
+  if (!process.env.GEMINI_API_KEY) {
+    return NextResponse.json({ error: "GEMINI_API_KEY is not configured" }, { status: 500 });
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let voice_transcript: string;
+  try {
+    const body = await request.json();
+    voice_transcript = body.transcript;
+    if (!voice_transcript || typeof voice_transcript !== "string" || voice_transcript.trim().length === 0) {
+      return NextResponse.json({ error: "transcript is required" }, { status: 400 });
+    }
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  let parsed: {
+    title: string;
+    client_name: string | null;
+    client_email: string | null;
+    parsed_description: string | null;
+    line_items: {
+      description: string;
+      quantity: number;
+      unit: string;
+      unit_cost: number;
+      total_cost: number;
+      category: string;
+      item_type: string;
+    }[];
+    materials: {
+      material_name: string;
+      quantity: number;
+      unit: string;
+      unit_price: number;
+      total_price: number;
+      supplier_note: string | null;
+    }[];
+    total_labor_cost: number;
+    total_material_cost: number;
+  };
+
+  try {
+    const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+    const model = genai.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const result = await model.generateContent([
+      SYSTEM_PROMPT,
+      `\n\nVoice transcript from contractor:\n\n${voice_transcript}`,
+    ]);
+    const text = result.response.text().trim();
+    const jsonStr = text.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim();
+    parsed = JSON.parse(jsonStr);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "AI generation failed";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+
+  const total_labor_cost = parsed.total_labor_cost ?? 0;
+  const total_material_cost = parsed.total_material_cost ?? 0;
+  const total_cost = total_labor_cost + total_material_cost;
+
+  const { data: estimate, error: estError } = await createEstimate(supabase, user.id, {
+    title: parsed.title ?? "New Estimate",
+    client_name: parsed.client_name ?? null,
+    client_email: parsed.client_email ?? null,
+    voice_transcript,
+    parsed_description: parsed.parsed_description ?? null,
+    total_labor_cost,
+    total_material_cost,
+    total_cost,
+    status: "draft",
+  });
+
+  if (estError || !estimate) {
+    return NextResponse.json({ error: estError?.message ?? "Failed to save estimate" }, { status: 500 });
+  }
+
+  if (parsed.line_items?.length > 0) {
+    await replaceLineItems(supabase, estimate.id, parsed.line_items);
+  }
+
+  if (parsed.materials?.length > 0) {
+    await replaceMaterials(supabase, estimate.id, parsed.materials);
+  }
+
+  return NextResponse.json({ estimateId: estimate.id });
+}

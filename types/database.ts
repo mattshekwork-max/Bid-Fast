@@ -1,6 +1,3 @@
-// Minimal database types for CatchFlow
-// Replace with auto-generated types from `supabase gen types` when available
-
 export type Json =
   | string
   | number
@@ -12,200 +9,200 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
-      workspaces: {
-        Row: {
-          id: string;
-          name: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          name?: string;
-          created_at?: string;
-        };
-        Relationships: [];
-      };
       users: {
         Row: {
           id: string;
           email: string;
-          workspace_id: string | null;
           full_name: string | null;
-          role: string;
+          subscription_status: string;
+          estimate_count_this_month: number;
           created_at: string;
         };
         Insert: {
           id: string;
           email: string;
-          workspace_id?: string | null;
           full_name?: string | null;
-          role?: string;
+          subscription_status?: string;
+          estimate_count_this_month?: number;
           created_at?: string;
         };
         Update: {
           id?: string;
           email?: string;
-          workspace_id?: string | null;
           full_name?: string | null;
-          role?: string;
+          subscription_status?: string;
+          estimate_count_this_month?: number;
           created_at?: string;
         };
         Relationships: [];
       };
-      leads: {
+      estimates: {
         Row: {
           id: string;
-          workspace_id: string;
-          name: string | null;
-          email: string | null;
-          phone: string | null;
-          company: string | null;
-          source: string;
+          user_id: string;
+          title: string;
           status: string;
-          urgency_score: number | null;
-          urgency_reason: string | null;
-          intent: string | null;
-          language: string;
-          summary: string | null;
-          subject_line: string | null;
-          suggested_reply: string | null;
-          last_activity_at: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          workspace_id: string;
-          name?: string | null;
-          email?: string | null;
-          phone?: string | null;
-          company?: string | null;
-          source?: string;
-          status?: string;
-          urgency_score?: number | null;
-          urgency_reason?: string | null;
-          intent?: string | null;
-          language?: string;
-          summary?: string | null;
-          subject_line?: string | null;
-          suggested_reply?: string | null;
-          last_activity_at?: string;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          workspace_id?: string;
-          name?: string | null;
-          email?: string | null;
-          phone?: string | null;
-          company?: string | null;
-          source?: string;
-          status?: string;
-          urgency_score?: number | null;
-          urgency_reason?: string | null;
-          intent?: string | null;
-          language?: string;
-          summary?: string | null;
-          subject_line?: string | null;
-          suggested_reply?: string | null;
-          last_activity_at?: string;
-          created_at?: string;
-        };
-        Relationships: [];
-      };
-      follow_ups: {
-        Row: {
-          id: string;
-          lead_id: string;
-          workspace_id: string;
-          type: string;
-          priority: string;
-          due_at: string | null;
-          completed_at: string | null;
+          client_name: string | null;
+          client_email: string | null;
+          transcript: string | null;
+          labor_total: number;
+          material_total: number;
+          client_token: string | null;
+          client_response: string | null;
+          client_responded_at: string | null;
+          pdf_url: string | null;
           notes: string | null;
-          outcome: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          title?: string;
+          status?: string;
+          client_name?: string | null;
+          client_email?: string | null;
+          transcript?: string | null;
+          labor_total?: number;
+          material_total?: number;
+          client_token?: string | null;
+          client_response?: string | null;
+          client_responded_at?: string | null;
+          pdf_url?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          title?: string;
+          status?: string;
+          client_name?: string | null;
+          client_email?: string | null;
+          transcript?: string | null;
+          labor_total?: number;
+          material_total?: number;
+          client_token?: string | null;
+          client_response?: string | null;
+          client_responded_at?: string | null;
+          pdf_url?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      estimate_line_items: {
+        Row: {
+          id: string;
+          estimate_id: string;
+          description: string;
+          quantity: number;
+          unit: string;
+          unit_price: number;
+          total: number;
+          sort_order: number;
           created_at: string;
         };
         Insert: {
           id?: string;
-          lead_id: string;
-          workspace_id: string;
-          type?: string;
-          priority?: string;
-          due_at?: string | null;
-          completed_at?: string | null;
-          notes?: string | null;
-          outcome?: string | null;
+          estimate_id: string;
+          description: string;
+          quantity?: number;
+          unit?: string;
+          unit_price?: number;
+          total?: number;
+          sort_order?: number;
           created_at?: string;
         };
         Update: {
           id?: string;
-          lead_id?: string;
-          workspace_id?: string;
-          type?: string;
-          priority?: string;
-          due_at?: string | null;
-          completed_at?: string | null;
-          notes?: string | null;
-          outcome?: string | null;
+          estimate_id?: string;
+          description?: string;
+          quantity?: number;
+          unit?: string;
+          unit_price?: number;
+          total?: number;
+          sort_order?: number;
           created_at?: string;
         };
         Relationships: [];
       };
-      email_events: {
+      material_list_items: {
         Row: {
           id: string;
-          workspace_id: string;
-          lead_id: string | null;
-          direction: string;
-          from_address: string | null;
-          to_address: string | null;
-          subject: string | null;
-          body_text: string | null;
-          body_html: string | null;
-          message_id: string | null;
-          in_reply_to: string | null;
-          processed: boolean;
+          estimate_id: string;
+          name: string;
+          quantity: number;
+          unit: string;
+          unit_cost: number;
+          total_cost: number;
+          supplier: string | null;
+          exported: boolean;
+          sort_order: number;
           created_at: string;
         };
         Insert: {
           id?: string;
-          workspace_id: string;
-          lead_id?: string | null;
-          direction?: string;
-          from_address?: string | null;
-          to_address?: string | null;
-          subject?: string | null;
-          body_text?: string | null;
-          body_html?: string | null;
-          message_id?: string | null;
-          in_reply_to?: string | null;
-          processed?: boolean;
+          estimate_id: string;
+          name: string;
+          quantity?: number;
+          unit?: string;
+          unit_cost?: number;
+          total_cost?: number;
+          supplier?: string | null;
+          exported?: boolean;
+          sort_order?: number;
           created_at?: string;
         };
         Update: {
           id?: string;
-          workspace_id?: string;
-          lead_id?: string | null;
-          direction?: string;
-          from_address?: string | null;
-          to_address?: string | null;
-          subject?: string | null;
-          body_text?: string | null;
-          body_html?: string | null;
-          message_id?: string | null;
-          in_reply_to?: string | null;
-          processed?: boolean;
+          estimate_id?: string;
+          name?: string;
+          quantity?: number;
+          unit?: string;
+          unit_cost?: number;
+          total_cost?: number;
+          supplier?: string | null;
+          exported?: boolean;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      voice_sessions: {
+        Row: {
+          id: string;
+          user_id: string;
+          estimate_id: string | null;
+          transcript: string | null;
+          duration_seconds: number | null;
+          status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          estimate_id?: string | null;
+          transcript?: string | null;
+          duration_seconds?: number | null;
+          status?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          estimate_id?: string | null;
+          transcript?: string | null;
+          duration_seconds?: number | null;
+          status?: string;
           created_at?: string;
         };
         Relationships: [];
       };
     };
-    Views: {};
-    Functions: {};
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
   };
 }
