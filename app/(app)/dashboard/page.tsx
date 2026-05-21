@@ -4,7 +4,9 @@ import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Mic, Plus } from "lucide-react";
+import { Suspense } from "react";
 import type { Estimate } from "@/db/schema";
+import DashboardFilters from "./DashboardFilters";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   draft: "outline",
@@ -13,27 +15,79 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "dest
   declined: "destructive",
 };
 
-export default async function DashboardPage() {
+const STATUS_DOT: Record<string, string> = {
+  draft: "bg-gray-300",
+  sent: "bg-blue-400",
+  accepted: "bg-green-500",
+  declined: "bg-red-400",
+};
+
+interface Props {
+  searchParams: Promise<{ status?: string; q?: string }>;
+}
+
+export default async function DashboardPage({ searchParams }: Props) {
+  const { status, q } = await searchParams;
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: estimates, error } = await supabase
+  // Build filtered query
+  let query = supabase
     .from("estimates")
     .select("*")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
+  if (status) query = query.eq("status", status);
+  if (q) query = query.or(`title.ilike.%${q}%,client_name.ilike.%${q}%`);
+
+  const { data: estimates, error } = await query;
+
+  // Always fetch totals unfiltered for the summary bar
+  const { data: allEstimates } = await supabase
+    .from("estimates")
+    .select("total_cost, status")
+    .eq("user_id", user.id);
+
   const rows = (estimates ?? []) as Estimate[];
-  const grandTotal = rows.reduce((acc, e) => acc + Number(e.total_cost), 0);
+  const all = allEstimates ?? [];
+
+  const totalValue = all.reduce((acc, e) => acc + Number(e.total_cost), 0);
+  const counts = {
+    total: all.length,
+    accepted: all.filter((e) => e.status === "accepted").length,
+    sent: all.filter((e) => e.status === "sent").length,
+    draft: all.filter((e) => e.status === "draft").length,
+  };
+  const acceptedValue = all.filter((e) => e.status === "accepted").reduce((acc, e) => acc + Number(e.total_cost), 0);
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      {/* Summary stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        {[
+          { label: "Total Estimates", value: counts.total.toString(), sub: `$${totalValue.toLocaleString()} total value` },
+          { label: "Accepted", value: counts.accepted.toString(), sub: `$${acceptedValue.toLocaleString()} won`, accent: "text-green-600" },
+          { label: "Pending", value: counts.sent.toString(), sub: "awaiting response", accent: "text-blue-600" },
+          { label: "Drafts", value: counts.draft.toString(), sub: "not yet sent" },
+        ].map((stat) => (
+          <div key={stat.label} className="bg-card border border-border rounded-[6px] px-4 py-3">
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{stat.label}</p>
+            <p className={`text-2xl font-bold mt-0.5 ${stat.accent ?? "text-foreground"}`}>{stat.value}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{stat.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Header + New button */}
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Estimates</h1>
+          <h1 className="text-xl font-bold text-foreground" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Estimates</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {rows.length} estimate{rows.length !== 1 ? "s" : ""} · ${grandTotal.toLocaleString()} total
+            {rows.length} {status || q ? "matching" : ""} estimate{rows.length !== 1 ? "s" : ""}
+            {status || q ? "" : ` · $${totalValue.toLocaleString()} total`}
           </p>
         </div>
         <Link href="/estimates/new">
@@ -43,6 +97,11 @@ export default async function DashboardPage() {
           </Button>
         </Link>
       </div>
+
+      {/* Filters */}
+      <Suspense>
+        <DashboardFilters />
+      </Suspense>
 
       {error && (
         <div className="p-4 rounded-[6px] bg-destructive/10 border border-destructive/20 text-destructive text-sm mb-6">
@@ -55,16 +114,22 @@ export default async function DashboardPage() {
           <div className="w-16 h-16 rounded-[6px] bg-primary/10 flex items-center justify-center mb-4">
             <Mic className="w-8 h-8 text-primary" />
           </div>
-          <h2 className="text-lg font-semibold text-foreground mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>No estimates yet</h2>
+          <h2 className="text-lg font-semibold text-foreground mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            {status || q ? "No estimates match" : "No estimates yet"}
+          </h2>
           <p className="text-muted-foreground text-sm mb-6 max-w-sm">
-            Record your first voice walkthrough and let Bid.Fast turn it into a professional estimate.
+            {status || q
+              ? "Try a different filter or search term."
+              : "Record your first voice walkthrough and let Bid.Fast turn it into a professional estimate."}
           </p>
-          <Link href="/estimates/new">
-            <Button className="rounded-[6px] font-semibold uppercase tracking-wide text-sm gap-1.5">
-              <Mic className="w-4 h-4" />
-              Record First Estimate
-            </Button>
-          </Link>
+          {!status && !q && (
+            <Link href="/estimates/new">
+              <Button className="rounded-[6px] font-semibold uppercase tracking-wide text-sm gap-1.5">
+                <Mic className="w-4 h-4" />
+                Record First Estimate
+              </Button>
+            </Link>
+          )}
         </div>
       )}
 
@@ -92,9 +157,12 @@ export default async function DashboardPage() {
                     <span className="text-sm text-muted-foreground">{est.client_name ?? "—"}</span>
                   </td>
                   <td className="px-6 py-4">
-                    <Badge variant={STATUS_VARIANT[est.status] ?? "outline"} className="rounded-[4px] uppercase text-xs tracking-wide font-semibold">
-                      {est.status}
-                    </Badge>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[est.status] ?? "bg-gray-300"}`} />
+                      <Badge variant={STATUS_VARIANT[est.status] ?? "outline"} className="rounded-[4px] uppercase text-xs tracking-wide font-semibold">
+                        {est.status}
+                      </Badge>
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <span className="text-sm font-bold text-foreground tabular-nums">
