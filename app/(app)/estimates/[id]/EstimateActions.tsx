@@ -150,7 +150,7 @@ export default function EstimateActions({ estimateId, status, clientEmail }: Pro
               <button onClick={() => copyMaterials("csv")} className="flex-1 h-9 text-sm font-medium border border-gray-200 hover:bg-gray-50 rounded-lg">
                 Copy CSV
               </button>
-              <button onClick={handleShare} className="flex-1 h-9 text-sm font-medium bg-[#00a982] hover:bg-[#009970] text-white rounded-lg">
+              <button onClick={handleShare} className="flex-1 h-9 text-sm font-medium bg-[#007a5e] hover:bg-[#006b52] text-white rounded-lg">
                 Share
               </button>
             </div>

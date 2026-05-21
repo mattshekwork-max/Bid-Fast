@@ -168,7 +168,7 @@ export default function ClientEstimateView({ estimate, lineItems, materials }: P
                 <button
                   onClick={() => respond("accepted")}
                   disabled={responding}
-                  className="flex-1 h-11 text-sm font-semibold bg-[#00a982] hover:bg-[#009970] disabled:opacity-50 text-white rounded-[6px] uppercase tracking-wide transition-colors"
+                  className="flex-1 h-11 text-sm font-semibold bg-[#007a5e] hover:bg-[#006b52] disabled:opacity-50 text-white rounded-[6px] uppercase tracking-wide transition-colors"
                 >
                   {responding ? "Submitting…" : "Accept Estimate"}
                 </button>

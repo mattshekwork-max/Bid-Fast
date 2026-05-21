@@ -61,7 +61,7 @@ export async function POST(request: NextRequest, { params }: { params: Params })
           html: `
             <p>Hi there,</p>
             <p>Your estimate for <strong>${estimate.title}</strong> is ready to review.</p>
-            <p><a href="${clientUrl}" style="display:inline-block;padding:12px 24px;background:#00a982;color:white;border-radius:8px;text-decoration:none;font-weight:600;">View Estimate</a></p>
+            <p><a href="${clientUrl}" style="display:inline-block;padding:12px 24px;background:#007a5e;color:white;border-radius:8px;text-decoration:none;font-weight:600;">View Estimate</a></p>
             <p>You can accept or decline directly from the link above.</p>
             <p style="color:#6B7280;font-size:12px;">Powered by Bid.Fast</p>
           `,

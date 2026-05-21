@@ -117,7 +117,7 @@ export default function NewEstimatePage() {
             </div>
             <button
               onClick={startRecording}
-              className="w-24 h-24 rounded-full bg-[#00a982] hover:bg-[#009970] text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center"
+              className="w-24 h-24 rounded-full bg-[#007a5e] hover:bg-[#006b52] text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center"
               aria-label="Start recording"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -151,7 +151,7 @@ export default function NewEstimatePage() {
         {/* TRANSCRIBING */}
         {state === "transcribing" && (
           <div className="flex flex-col items-center gap-4 py-12">
-            <div className="w-10 h-10 border-2 border-[#00a982] border-t-transparent rounded-full spinner" />
+            <div className="w-10 h-10 border-2 border-[#007a5e] border-t-transparent rounded-full spinner" />
             <p className="text-sm text-gray-600">Transcribing your recording…</p>
           </div>
         )}
@@ -165,7 +165,7 @@ export default function NewEstimatePage() {
                 value={transcript}
                 onChange={(e) => setTranscript(e.target.value)}
                 rows={8}
-                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00a982]/30 focus:border-[#00a982] resize-none"
+                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#007a5e]/30 focus:border-[#007a5e] resize-none"
                 placeholder="Your transcript will appear here…"
               />
               <p className="text-xs text-gray-400 mt-1">Edit the transcript if anything was misheard before generating.</p>
@@ -180,7 +180,7 @@ export default function NewEstimatePage() {
               <button
                 onClick={generateEstimate}
                 disabled={!transcript.trim()}
-                className="flex-1 h-10 text-sm font-medium bg-[#00a982] hover:bg-[#009970] disabled:opacity-50 text-white rounded-xl transition-colors"
+                className="flex-1 h-10 text-sm font-medium bg-[#007a5e] hover:bg-[#006b52] disabled:opacity-50 text-white rounded-xl transition-colors"
               >
                 Generate Estimate
               </button>
@@ -191,7 +191,7 @@ export default function NewEstimatePage() {
         {/* GENERATING */}
         {state === "generating" && (
           <div className="flex flex-col items-center gap-4 py-12">
-            <div className="w-10 h-10 border-2 border-[#00a982] border-t-transparent rounded-full spinner" />
+            <div className="w-10 h-10 border-2 border-[#007a5e] border-t-transparent rounded-full spinner" />
             <p className="text-sm text-gray-600">Building your estimate…</p>
             <p className="text-xs text-gray-400">Identifying line items, materials, and pricing</p>
           </div>
@@ -205,7 +205,7 @@ export default function NewEstimatePage() {
             </div>
             <button
               onClick={() => setState("idle")}
-              className="h-10 px-6 text-sm font-medium bg-[#00a982] hover:bg-[#009970] text-white rounded-xl transition-colors"
+              className="h-10 px-6 text-sm font-medium bg-[#007a5e] hover:bg-[#006b52] text-white rounded-xl transition-colors"
             >
               Try again
             </button>
