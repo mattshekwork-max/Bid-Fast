@@ -157,3 +157,15 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER estimates_updated_at
   BEFORE UPDATE ON estimates
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================================
+-- GRANTS — authenticated role needs table-level privileges
+-- (RLS policies are checked after these grants pass)
+-- ============================================================
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON estimates TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON estimate_line_items TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON material_list_items TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON voice_sessions TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON users TO authenticated;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated;
