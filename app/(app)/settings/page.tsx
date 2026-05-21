@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { User } from "@supabase/supabase-js";
+import PricingCard from "./PricingCard";
 
 export default function SettingsPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -25,7 +26,7 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+      <h1 className="text-2xl font-bold text-foreground" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Settings</h1>
 
       <Card className="rounded-[6px]">
         <CardHeader>
@@ -55,6 +56,9 @@ export default function SettingsPage() {
           </Button>
         </CardContent>
       </Card>
+
+      {/* Pricing */}
+      <PricingCard />
     </div>
   );
 }

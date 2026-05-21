@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import Groq from "groq-sdk";
 import { createClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import { createEstimate, replaceLineItems, replaceMaterials } from "@/lib/estimates";
 
 // Uses Groq LLaMA 3.3 70B for estimate generation (same API key as Whisper transcription)
 
-const SYSTEM_PROMPT = `You are a professional trade estimating assistant. You parse voice transcripts from contractors — electricians, plumbers, HVAC techs, tile setters, carpenters, drywall crews, and other skilled trades — and produce structured job estimates.
+const BASE_PROMPT_TOP = `You are a professional trade estimating assistant. You parse voice transcripts from contractors — electricians, plumbers, HVAC techs, tile setters, carpenters, drywall crews, and other skilled trades — and produce structured job estimates.
 
 Trade vocabulary you understand (non-exhaustive):
 - Electrical: Romex (NM-B), THHN, EMT conduit, 200A panel, breaker, junction box, GFCI, arc-fault, service entrance, load center
@@ -13,18 +14,18 @@ Trade vocabulary you understand (non-exhaustive):
 - HVAC: ton, SEER, mini-split, air handler, condenser, lineset, plenum, flex duct, RTU, damper
 - Drywall: 5/8 rock, 1/2 sheet, green board, blueboard, corner bead, taping mud, texture
 - Tile: subway tile, LVP, Schluter, thinset, grout, membrane, backerboard, mud bed
-- General: OSB, LVL beam, joist hanger, lag bolt, Simpson tie, flashing, housewrap
+- General: OSB, LVL beam, joist hanger, lag bolt, Simpson tie, flashing, housewrap`;
 
-Pricing guidance (use realistic US regional averages, ±20%):
+const DEFAULT_PRICING = `Pricing guidance (use realistic US regional averages, ±20%):
 - Electrician labor: $85–$125/hr
 - Plumber labor: $90–$130/hr
 - HVAC tech labor: $80–$120/hr
 - Tile setter: $65–$95/hr
 - Drywall crew: $50–$80/hr
 - General laborer: $35–$55/hr
-- Always include a 10–15% materials markup unless transcript indicates otherwise
+- Always include a 10–15% materials markup unless transcript indicates otherwise`;
 
-Output ONLY valid JSON matching this schema exactly (no markdown, no extra text):
+const PROMPT_SCHEMA = `Output ONLY valid JSON matching this schema exactly (no markdown, no extra text):
 {
   "title": "string — short job description, e.g. 'Panel Upgrade 200A'",
   "client_name": "string | null",
@@ -55,6 +56,41 @@ Output ONLY valid JSON matching this schema exactly (no markdown, no extra text)
   "total_material_cost": number
 }`;
 
+function buildSystemPrompt(pricingConfig: Record<string, unknown> | null): string {
+  let pricingSection = DEFAULT_PRICING;
+
+  if (pricingConfig) {
+    const lines: string[] = [];
+    const state = pricingConfig.state as string | undefined;
+    const trade = pricingConfig.trade as string | undefined;
+    const markup = pricingConfig.markup_pct as number | undefined;
+    const rates = pricingConfig.labor_rates as Array<{ name: string; min: number; max: number; unit: string }> | undefined;
+    const custom = pricingConfig.custom_rules as string | undefined;
+
+    const location = [trade, state ? `${state} rates` : null].filter(Boolean).join(", ");
+    if (location) lines.push(`Pricing guidance for this contractor (${location}):`);
+    else lines.push("Pricing guidance for this contractor:");
+
+    if (rates && rates.length > 0) {
+      for (const r of rates) {
+        if (r.name && r.max > 0) {
+          lines.push(`- ${r.name}: $${r.min}–$${r.max}/${r.unit}`);
+        }
+      }
+    }
+
+    lines.push(`- Materials markup: ${markup ?? 15}%`);
+
+    if (custom && custom.trim()) {
+      lines.push(`\nAdditional contractor rules:\n${custom.trim()}`);
+    }
+
+    pricingSection = lines.join("\n");
+  }
+
+  return `${BASE_PROMPT_TOP}\n\n${pricingSection}\n\n${PROMPT_SCHEMA}`;
+}
+
 export async function POST(request: NextRequest) {
   if (!process.env.GROQ_API_KEY) {
     return NextResponse.json({ error: "GROQ_API_KEY is not configured" }, { status: 500 });
@@ -78,6 +114,16 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
+
+  // Fetch user's custom pricing config (falls back to defaults if not set)
+  const admin = getSupabaseAdmin();
+  const { data: userData } = await admin
+    .from("users")
+    .select("pricing_config")
+    .eq("id", user.id)
+    .single();
+  const pricingConfig = (userData?.pricing_config as Record<string, unknown> | null) ?? null;
+  const systemPrompt = buildSystemPrompt(pricingConfig);
 
   let parsed: {
     title: string;
@@ -110,7 +156,7 @@ export async function POST(request: NextRequest) {
     const completion = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: systemPrompt },
         { role: "user", content: `Voice transcript from contractor:\n\n${voice_transcript}` },
       ],
       temperature: 0.2,

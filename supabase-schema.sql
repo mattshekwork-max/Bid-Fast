@@ -169,3 +169,9 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON material_list_items TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON voice_sessions TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON users TO authenticated;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+
+-- ============================================================
+-- PER-USER PRICING CONFIG
+-- ============================================================
+-- Run this if adding pricing config to an existing database:
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS pricing_config JSONB DEFAULT NULL;
