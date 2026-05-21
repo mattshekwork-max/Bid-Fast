@@ -31,20 +31,25 @@ export async function GET(request: NextRequest, { params }: { params: Params }) 
     return new NextResponse("Not found", { status: 404 });
   }
 
-  const { data: lineItems } = await admin
-    .from("estimate_line_items")
-    .select("*")
-    .eq("estimate_id", id)
-    .order("sort_order");
-
-  const { data: materials } = await admin
-    .from("material_list_items")
-    .select("*")
-    .eq("estimate_id", id)
-    .order("sort_order");
+  const [{ data: lineItems }, { data: materials }, { data: contractor }] = await Promise.all([
+    admin.from("estimate_line_items").select("*").eq("estimate_id", id).order("sort_order"),
+    admin.from("material_list_items").select("*").eq("estimate_id", id).order("sort_order"),
+    admin.from("users").select("company_name,company_phone,company_address,company_logo_url,company_website,company_license").eq("id", user.id).single(),
+  ]);
 
   const grandTotal = Number(estimate.total_cost);
   const dateStr = new Date(estimate.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+
+  const companyHeader = contractor?.company_name
+    ? `<div>
+        ${contractor.company_logo_url ? `<img src="${contractor.company_logo_url}" alt="Logo" style="height:48px;object-fit:contain;margin-bottom:8px;display:block;">` : ""}
+        <div style="font-size:16px;font-weight:800;color:#065f46;">${contractor.company_name}</div>
+        ${contractor.company_phone ? `<div style="font-size:11px;color:#6B7280;margin-top:2px;">${contractor.company_phone}</div>` : ""}
+        ${contractor.company_address ? `<div style="font-size:11px;color:#6B7280;">${contractor.company_address}</div>` : ""}
+        ${contractor.company_license ? `<div style="font-size:11px;color:#6B7280;">Lic# ${contractor.company_license}</div>` : ""}
+        ${contractor.company_website ? `<div style="font-size:11px;color:#6B7280;">${contractor.company_website}</div>` : ""}
+      </div>`
+    : `<div class="brand">Bid<span>.</span>Fast</div>`;
 
   const lineItemRows = (lineItems ?? [])
     .map(
@@ -94,7 +99,7 @@ export async function GET(request: NextRequest, { params }: { params: Params }) 
 <body>
 <div class="header">
   <div>
-    <div class="brand">Bid<span>.</span>Fast</div>
+    ${companyHeader}
     <div class="title" style="margin-top:12px">${estimate.title}</div>
     <span class="status">${estimate.status}</span>
   </div>

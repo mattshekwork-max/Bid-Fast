@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import type { User } from "@supabase/supabase-js";
 import PricingCard from "./PricingCard";
+import CompanyCard from "./CompanyCard";
 
 export default function SettingsPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -56,6 +57,9 @@ export default function SettingsPage() {
           </Button>
         </CardContent>
       </Card>
+
+      {/* Company */}
+      <CompanyCard />
 
       {/* Pricing */}
       <PricingCard />

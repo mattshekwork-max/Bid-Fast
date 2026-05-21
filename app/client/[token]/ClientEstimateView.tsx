@@ -3,10 +3,20 @@
 import { useState } from "react";
 import type { Estimate, EstimateLineItem, MaterialListItem } from "@/db/schema";
 
+interface ContractorProfile {
+  company_name?: string | null;
+  company_phone?: string | null;
+  company_address?: string | null;
+  company_logo_url?: string | null;
+  company_website?: string | null;
+  company_license?: string | null;
+}
+
 interface Props {
   estimate: Estimate;
   lineItems: EstimateLineItem[];
   materials: MaterialListItem[];
+  contractor: ContractorProfile;
 }
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
@@ -16,7 +26,7 @@ const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
   declined: { label: "Declined", cls: "bg-red-100 text-red-700" },
 };
 
-export default function ClientEstimateView({ estimate, lineItems, materials }: Props) {
+export default function ClientEstimateView({ estimate, lineItems, materials, contractor }: Props) {
   const [responding, setResponding] = useState(false);
   const [responseResult, setResponseResult] = useState<"accepted" | "declined" | null>(
     (estimate.client_response as "accepted" | "declined" | null) ?? null
@@ -52,12 +62,33 @@ export default function ClientEstimateView({ estimate, lineItems, materials }: P
         {/* Header */}
         <div className="flex items-start justify-between mb-8">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-7 h-7 rounded-[6px] bg-[#065f46] flex items-center justify-center">
-                <span className="text-white text-xs font-bold">BF</span>
+            {/* Company branding */}
+            {contractor.company_logo_url ? (
+              <img
+                src={contractor.company_logo_url}
+                alt={contractor.company_name ?? "Company logo"}
+                className="h-12 object-contain mb-3"
+              />
+            ) : (
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-7 h-7 rounded-[6px] bg-[#065f46] flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">
+                    {contractor.company_name ? contractor.company_name.slice(0, 2).toUpperCase() : "BF"}
+                  </span>
+                </div>
+                <span className="font-bold text-[#065f46]">{contractor.company_name ?? "Bid.Fast"}</span>
               </div>
-              <span className="font-bold text-[#065f46]">Bid.Fast</span>
-            </div>
+            )}
+            {contractor.company_name && contractor.company_logo_url && (
+              <p className="font-bold text-[#065f46] mb-1">{contractor.company_name}</p>
+            )}
+            {(contractor.company_phone || contractor.company_address) && (
+              <div className="text-xs text-gray-500 space-y-0.5 mb-2">
+                {contractor.company_phone && <p>{contractor.company_phone}</p>}
+                {contractor.company_address && <p>{contractor.company_address}</p>}
+                {contractor.company_license && <p>Lic# {contractor.company_license}</p>}
+              </div>
+            )}
             <h1 className="text-2xl font-bold text-gray-900 mt-3">{estimate.title}</h1>
             {estimate.client_name && <p className="text-sm text-gray-500 mt-1">Prepared for {estimate.client_name}</p>}
           </div>
