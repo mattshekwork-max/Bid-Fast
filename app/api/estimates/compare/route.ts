@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { buildPriceReference } from "@/lib/price-catalog";
 
 export const runtime = "nodejs";
 
@@ -23,6 +24,13 @@ function buildPrompt(language: string): string {
     "would charge a client — retail material prices (marked up above supplier cost) and professional crew labor rates. Account for prep, " +
     "setup, cleanup, and mobilization; don't undercount hours. When a rate could fall in a range, choose the UPPER end of the realistic " +
     "current US market range. Do NOT lowball.";
+  const ref = buildPriceReference();
+  if (ref) {
+    prompt +=
+      "\n\nKNOWN MATERIAL/EQUIPMENT PRICES — when a material/equipment matches one of these (incl. synonyms, " +
+      'e.g. "Tesla battery" = Tesla Powerwall), use this unit price exactly (equipment cost only — add labor separately):\n' +
+      ref;
+  }
   if (language === "es") prompt += " Respond entirely in Spanish — all string values in Spanish.";
   return prompt;
 }
