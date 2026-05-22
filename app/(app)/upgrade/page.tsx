@@ -72,7 +72,7 @@ export default function UpgradePage() {
             </div>
             <p className="text-sm font-bold uppercase tracking-wide mb-1" style={{ color: BRAND }}>Solo</p>
             <div className="flex items-baseline gap-1 mb-1">
-              <span className="text-5xl font-black text-gray-900">$19</span>
+              <span className="text-5xl font-black text-gray-900">$29</span>
               <span className="text-gray-400 font-medium">/mo</span>
             </div>
             <p className="text-sm text-gray-400 mb-8">Perfect for independent contractors</p>
@@ -92,7 +92,7 @@ export default function UpgradePage() {
               className="w-full py-4 rounded-xl font-bold text-white text-base transition-all hover:opacity-90 active:scale-95 disabled:opacity-60"
               style={{ background: BRAND }}
             >
-              {loading === "solo" ? "Redirecting…" : "Start Solo — $19/mo →"}
+              {loading === "solo" ? "Redirecting…" : "Start Solo — $29/mo →"}
             </button>
           </div>
 
@@ -100,7 +100,7 @@ export default function UpgradePage() {
           <div className="bg-gray-900 rounded-2xl border border-gray-800 p-8 flex flex-col">
             <p className="text-sm font-bold uppercase tracking-wide text-gray-400 mb-1">Pro</p>
             <div className="flex items-baseline gap-1 mb-1">
-              <span className="text-5xl font-black text-white">$39</span>
+              <span className="text-5xl font-black text-white">$49</span>
               <span className="text-gray-500 font-medium">/mo</span>
             </div>
             <p className="text-sm text-gray-500 mb-8">For growing teams and multi-crew operations</p>
@@ -119,7 +119,7 @@ export default function UpgradePage() {
               disabled={loading !== null}
               className="w-full py-4 rounded-xl font-bold text-gray-900 bg-white text-base transition-all hover:bg-gray-100 active:scale-95 disabled:opacity-60"
             >
-              {loading === "pro" ? "Redirecting…" : "Start Pro — $39/mo →"}
+              {loading === "pro" ? "Redirecting…" : "Start Pro — $49/mo →"}
             </button>
           </div>
         </div>

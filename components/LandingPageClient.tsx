@@ -178,7 +178,7 @@ export function LandingPageClient() {
                 Most Popular
               </div>
               <p className="text-sm font-bold uppercase tracking-wide mb-1" style={{ color: BRAND }}>Solo</p>
-              <div className="text-4xl font-black text-gray-900 mb-1">$19<span className="text-xl font-semibold text-gray-400">/mo</span></div>
+              <div className="text-4xl font-black text-gray-900 mb-1">$29<span className="text-xl font-semibold text-gray-400">/mo</span></div>
               <p className="text-gray-400 text-sm mb-6">Billed monthly</p>
               <ul className="space-y-3 mb-8 flex-1">
                 {["Unlimited estimates", "PDF export", "Company branding", "Email delivery to clients", "Priority support"].map(f => (
@@ -195,7 +195,7 @@ export function LandingPageClient() {
             {/* Pro */}
             <div className="p-7 rounded-2xl border border-gray-200 bg-gray-900 flex flex-col">
               <p className="text-sm font-bold text-gray-400 uppercase tracking-wide mb-1">Pro</p>
-              <div className="text-4xl font-black text-white mb-1">$39<span className="text-xl font-semibold text-gray-500">/mo</span></div>
+              <div className="text-4xl font-black text-white mb-1">$49<span className="text-xl font-semibold text-gray-500">/mo</span></div>
               <p className="text-gray-500 text-sm mb-6">Billed monthly</p>
               <ul className="space-y-3 mb-8 flex-1">
                 {["Everything in Solo", "Team seats (+$15/seat)", "Per-user pricing config", "Shared estimate dashboard", "Seat billing management"].map(f => (
