@@ -5,18 +5,34 @@ import { hasActiveSubscription } from "@/lib/subscription";
 
 const FREE_ESTIMATE_LIMIT = 3;
 
-function buildSystemPrompt(pricingConfig: object | null, language: string): string {
+type LaborItem = { description: string; quantity: number; unit: string; unitCost: number };
+type Material = { name: string; quantity: number; unit: string; unitPrice: number; supplierNote?: string };
+type AiEstimate = {
+  title: string;
+  description?: string;
+  laborItems: LaborItem[];
+  materials: Material[];
+  notes?: string;
+};
+
+function buildSystemPrompt(language: string): string {
   let prompt =
-    "You are an expert trade contractor estimator. Generate a detailed estimate from this job description. " +
-    "Return ONLY valid JSON with this structure: { title, description, lineItems: [{description, quantity, unit, unitCost, total}], " +
-    "laborHours, laborRate, laborTotal, materialsTotal, subtotal, tax, total, notes }. Use realistic market rates.";
+    "You are an expert trade contractor estimator. From the job walkthrough, produce a detailed estimate. " +
+    "Return ONLY valid JSON with this exact shape: " +
+    '{ "title": string, "description": string, ' +
+    '"laborItems": [{ "description": string, "quantity": number, "unit": string, "unitCost": number }], ' +
+    '"materials": [{ "name": string, "quantity": number, "unit": string, "unitPrice": number, "supplierNote": string }], ' +
+    '"notes": string }. ' +
+    "unitCost and unitPrice are per-unit dollar amounts (numbers only, no symbols). Use realistic current market rates.";
   if (language === "es") {
-    prompt += " Respond entirely in Spanish. All text in the JSON values must be in Spanish.";
-  }
-  if (pricingConfig) {
-    prompt += ` Use these custom rates where applicable: ${JSON.stringify(pricingConfig)}.`;
+    prompt += " Respond entirely in Spanish — all string values in Spanish.";
   }
   return prompt;
+}
+
+function num(v: unknown): number {
+  const n = typeof v === "number" ? v : parseFloat(String(v));
+  return Number.isFinite(n) ? n : 0;
 }
 
 export async function POST(req: NextRequest) {
@@ -26,8 +42,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { transcript, language = "en", pricingConfig: bodyPricingConfig } = await req.json();
-
+  const { transcript, language = "en" } = await req.json();
   if (!transcript) {
     return NextResponse.json({ error: "transcript is required" }, { status: 400 });
   }
@@ -41,26 +56,15 @@ export async function POST(req: NextRequest) {
       .from("estimates")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id);
-
     if ((count ?? 0) >= FREE_ESTIMATE_LIMIT) {
       return NextResponse.json(
-        {
-          error: "Free limit reached. Upgrade to Pro for unlimited estimates.",
-          upgrade: true,
-        },
+        { error: "Free limit reached. Upgrade to Pro for unlimited estimates.", upgrade: true },
         { status: 403 }
       );
     }
   }
-  const { data: userData } = await admin
-    .from("users")
-    .select("pricing_config")
-    .eq("id", user.id)
-    .single();
 
-  const pricingConfig = bodyPricingConfig ?? userData?.pricing_config ?? null;
-  const systemPrompt = buildSystemPrompt(pricingConfig, language);
-
+  // Generate the estimate with Groq LLaMA
   const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -70,11 +74,12 @@ export async function POST(req: NextRequest) {
     body: JSON.stringify({
       model: "llama-3.3-70b-versatile",
       messages: [
-        { role: "system", content: systemPrompt },
+        { role: "system", content: buildSystemPrompt(language) },
         { role: "user", content: transcript },
       ],
       temperature: 0.3,
       max_tokens: 2000,
+      response_format: { type: "json_object" },
     }),
   });
 
@@ -85,35 +90,90 @@ export async function POST(req: NextRequest) {
 
   const completion = await groqRes.json();
   let raw: string = completion.choices?.[0]?.message?.content ?? "";
-
-  // Strip markdown code fences if model wrapped the JSON
   raw = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
 
-  let parsed: Record<string, unknown>;
+  let ai: AiEstimate;
   try {
-    parsed = JSON.parse(raw);
+    ai = JSON.parse(raw);
   } catch {
     console.error("Failed to parse LLM JSON:", raw);
     return NextResponse.json({ error: "Failed to parse estimate" }, { status: 500 });
   }
 
-  const { data: inserted, error: insertError } = await admin
+  const laborItems = Array.isArray(ai.laborItems) ? ai.laborItems : [];
+  const materials = Array.isArray(ai.materials) ? ai.materials : [];
+
+  const totalLabor = laborItems.reduce((s, i) => s + num(i.quantity) * num(i.unitCost), 0);
+  const totalMaterial = materials.reduce((s, m) => s + num(m.quantity) * num(m.unitPrice), 0);
+  const totalCost = totalLabor + totalMaterial;
+
+  // Insert the estimate header
+  const { data: estimate, error: insertError } = await admin
     .from("estimates")
     .insert({
       user_id: user.id,
-      title: (parsed.title as string) ?? "Untitled Estimate",
-      transcript,
-      estimate_data: parsed,
+      title: ai.title || "Untitled Estimate",
+      voice_transcript: transcript,
+      parsed_description: ai.description ?? null,
       status: "draft",
-      language,
+      total_labor_cost: totalLabor,
+      total_material_cost: totalMaterial,
+      total_cost: totalCost,
+      client_token: crypto.randomUUID(),
     })
     .select()
     .single();
 
-  if (insertError || !inserted) {
+  if (insertError || !estimate) {
     console.error("Failed to save estimate:", insertError);
     return NextResponse.json({ error: "Failed to save estimate" }, { status: 500 });
   }
 
-  return NextResponse.json({ estimate: inserted });
+  // Insert priced line items (labor + materials)
+  const lineItems = [
+    ...laborItems.map((i, idx) => ({
+      estimate_id: estimate.id,
+      category: "labor",
+      description: i.description || "Labor",
+      quantity: num(i.quantity) || 1,
+      unit: i.unit || "hr",
+      unit_cost: num(i.unitCost),
+      total_cost: num(i.quantity) * num(i.unitCost),
+      item_type: "labor",
+      sort_order: idx,
+    })),
+    ...materials.map((m, idx) => ({
+      estimate_id: estimate.id,
+      category: "material",
+      description: m.name || "Material",
+      quantity: num(m.quantity) || 1,
+      unit: m.unit || "each",
+      unit_cost: num(m.unitPrice),
+      total_cost: num(m.quantity) * num(m.unitPrice),
+      item_type: "material",
+      sort_order: laborItems.length + idx,
+    })),
+  ];
+  if (lineItems.length) {
+    const { error: liError } = await admin.from("estimate_line_items").insert(lineItems);
+    if (liError) console.error("Failed to save line items:", liError);
+  }
+
+  // Insert material shopping list
+  if (materials.length) {
+    const matRows = materials.map((m, idx) => ({
+      estimate_id: estimate.id,
+      material_name: m.name || "Material",
+      quantity: num(m.quantity) || 1,
+      unit: m.unit || "each",
+      unit_price: num(m.unitPrice),
+      total_price: num(m.quantity) * num(m.unitPrice),
+      supplier_note: m.supplierNote ?? null,
+      sort_order: idx,
+    }));
+    const { error: matError } = await admin.from("material_list_items").insert(matRows);
+    if (matError) console.error("Failed to save material list:", matError);
+  }
+
+  return NextResponse.json({ estimate });
 }
