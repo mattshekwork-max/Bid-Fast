@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { stripe, isStripeConfigured } from "@/lib/stripe";
 
-// Tier → Stripe Price ID mapping
-const PRICE_IDS: Record<string, string | undefined> = {
-  solo: process.env.STRIPE_SOLO_PRICE_ID,
-  pro:  process.env.STRIPE_PRO_PRICE_ID ?? process.env.STRIPE_PRICE_ID, // fallback for existing
-};
+// Single paid plan ("Pro" — $29/mo). Uses the $29 price already configured
+// in STRIPE_SOLO_PRICE_ID. Falls back to legacy vars if that's unset.
+const PRO_PRICE_ID =
+  process.env.STRIPE_SOLO_PRICE_ID ??
+  process.env.STRIPE_PRICE_ID ??
+  process.env.STRIPE_PRO_PRICE_ID;
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,19 +24,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Resolve tier from body (default "pro" for backward compatibility)
-    let tier: "solo" | "pro" = "pro";
-    try {
-      const body = await req.json();
-      if (body.tier === "solo" || body.tier === "pro") tier = body.tier;
-    } catch {
-      // no body — use default
-    }
-
-    const priceId = PRICE_IDS[tier];
+    const priceId = PRO_PRICE_ID;
     if (!priceId) {
       return NextResponse.json(
-        { error: `Stripe price not configured for tier: ${tier}` },
+        { error: "Stripe price not configured. Set STRIPE_SOLO_PRICE_ID." },
         { status: 503 }
       );
     }
@@ -70,7 +62,7 @@ export async function POST(req: NextRequest) {
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${origin}/dashboard?upgraded=true`,
       cancel_url:  `${origin}/upgrade?canceled=true`,
-      metadata: { userId: user.id, tier },
+      metadata: { userId: user.id, tier: "pro" },
       client_reference_id: user.id,
     });
 

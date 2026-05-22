@@ -46,14 +46,14 @@ export function LandingPageClient() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
             <Link href="/signup" className="px-8 py-4 rounded-xl text-lg font-bold text-white shadow-lg hover:opacity-90 active:scale-95 transition-all" style={{ background: BRAND }}>
-              Get 5 Free Estimates →
+              Get 3 Free Estimates →
             </Link>
             <Link href="#how-it-works" className="px-8 py-4 rounded-xl text-lg font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all">
               See How It Works
             </Link>
           </div>
 
-          <p className="text-sm text-gray-400 font-medium">No credit card required · 5 free estimates to start · Cancel anytime</p>
+          <p className="text-sm text-gray-400 font-medium">No credit card required · 3 free estimates to start · Cancel anytime</p>
         </div>
       </section>
 
@@ -153,15 +153,15 @@ export function LandingPageClient() {
             <p className="text-lg text-gray-500">One job won pays for a year of Pro. Guaranteed.</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
 
             {/* Free */}
-            <div className="p-7 rounded-2xl border border-gray-200 bg-white flex flex-col">
+            <div className="p-8 rounded-2xl border border-gray-200 bg-white flex flex-col">
               <p className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-1">Free</p>
               <div className="text-4xl font-black text-gray-900 mb-1">$0</div>
-              <p className="text-gray-400 text-sm mb-6">Forever free</p>
+              <p className="text-gray-400 text-sm mb-6">3 free estimates to start</p>
               <ul className="space-y-3 mb-8 flex-1">
-                {["5 estimates to start", "Voice recording", "AI estimate generation", "Client share link"].map(f => (
+                {["3 estimates — no card required", "Voice recording", "AI estimate generation", "Client share link"].map(f => (
                   <li key={f} className="flex items-start gap-2 text-sm text-gray-600">
                     <Check className="w-4 h-4 shrink-0 mt-0.5" style={{ color: BRAND }} />{f}
                   </li>
@@ -172,46 +172,29 @@ export function LandingPageClient() {
               </Link>
             </div>
 
-            {/* Solo */}
-            <div className="p-7 rounded-2xl border-2 bg-white flex flex-col relative" style={{ borderColor: BRAND }}>
+            {/* Pro */}
+            <div className="p-8 rounded-2xl border-2 bg-white flex flex-col relative" style={{ borderColor: BRAND }}>
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold text-white" style={{ background: BRAND }}>
                 Most Popular
               </div>
-              <p className="text-sm font-bold uppercase tracking-wide mb-1" style={{ color: BRAND }}>Solo</p>
+              <p className="text-sm font-bold uppercase tracking-wide mb-1" style={{ color: BRAND }}>Pro</p>
               <div className="text-4xl font-black text-gray-900 mb-1">$29<span className="text-xl font-semibold text-gray-400">/mo</span></div>
-              <p className="text-gray-400 text-sm mb-6">Billed monthly</p>
+              <p className="text-gray-400 text-sm mb-6">Unlimited estimates, billed monthly</p>
               <ul className="space-y-3 mb-8 flex-1">
-                {["Unlimited estimates", "PDF export", "Company branding", "Email delivery to clients", "Priority support"].map(f => (
+                {["Unlimited estimates", "PDF export + company branding", "Email delivery to clients", "Full EN + ES support", "Team seats (+$10/seat)", "Priority support"].map(f => (
                   <li key={f} className="flex items-start gap-2 text-sm text-gray-600">
                     <Check className="w-4 h-4 shrink-0 mt-0.5" style={{ color: BRAND }} />{f}
                   </li>
                 ))}
               </ul>
               <Link href="/signup" className="block text-center px-4 py-3 rounded-lg font-bold text-white hover:opacity-90 active:scale-95 transition-all text-sm" style={{ background: BRAND }}>
-                Start Solo →
-              </Link>
-            </div>
-
-            {/* Pro */}
-            <div className="p-7 rounded-2xl border border-gray-200 bg-gray-900 flex flex-col">
-              <p className="text-sm font-bold text-gray-400 uppercase tracking-wide mb-1">Pro</p>
-              <div className="text-4xl font-black text-white mb-1">$49<span className="text-xl font-semibold text-gray-500">/mo</span></div>
-              <p className="text-gray-500 text-sm mb-6">Billed monthly</p>
-              <ul className="space-y-3 mb-8 flex-1">
-                {["Everything in Solo", "Team seats (+$10/seat)", "Per-user pricing config", "Shared estimate dashboard", "Seat billing management"].map(f => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-gray-300">
-                    <Check className="w-4 h-4 shrink-0 mt-0.5 text-green-400" />{f}
-                  </li>
-                ))}
-              </ul>
-              <Link href="/signup" className="block text-center px-4 py-3 rounded-lg font-bold text-gray-900 bg-white hover:bg-gray-100 transition-all text-sm">
                 Start Pro →
               </Link>
             </div>
 
           </div>
 
-          <p className="text-center text-sm text-gray-400 mt-8">All plans include a 5-estimate free trial · Cancel anytime · No setup fees</p>
+          <p className="text-center text-sm text-gray-400 mt-8">Start with 3 free estimates · No credit card required · Cancel anytime</p>
         </div>
       </section>
 

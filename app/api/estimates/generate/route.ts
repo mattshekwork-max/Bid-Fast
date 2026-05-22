@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { hasActiveSubscription } from "@/lib/subscription";
+
+const FREE_ESTIMATE_LIMIT = 3;
 
 function buildSystemPrompt(pricingConfig: object | null, language: string): string {
   let prompt =
@@ -30,6 +33,25 @@ export async function POST(req: NextRequest) {
   }
 
   const admin = getSupabaseAdmin();
+
+  // Free-tier gate: 3 estimates, then require Pro
+  const subscribed = await hasActiveSubscription(admin, user.id);
+  if (!subscribed) {
+    const { count } = await admin
+      .from("estimates")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id);
+
+    if ((count ?? 0) >= FREE_ESTIMATE_LIMIT) {
+      return NextResponse.json(
+        {
+          error: "Free limit reached. Upgrade to Pro for unlimited estimates.",
+          upgrade: true,
+        },
+        { status: 403 }
+      );
+    }
+  }
   const { data: userData } = await admin
     .from("users")
     .select("pricing_config")

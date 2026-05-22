@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { hasActiveSubscription } from "@/lib/subscription";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -16,18 +17,9 @@ export async function POST(req: NextRequest) {
 
   const admin = getSupabaseAdmin();
 
-  // Check Pro subscription
-  const { data: userData, error: userError } = await admin
-    .from("users")
-    .select("subscription_status")
-    .eq("id", user.id)
-    .single();
-
-  if (userError || !userData) {
-    return NextResponse.json({ error: "Failed to verify subscription" }, { status: 500 });
-  }
-
-  if (userData.subscription_status !== "pro") {
+  // Team seats require an active paid (Pro) subscription
+  const subscribed = await hasActiveSubscription(admin, user.id);
+  if (!subscribed) {
     return NextResponse.json({ error: "Pro required", upgrade: true }, { status: 403 });
   }
 
