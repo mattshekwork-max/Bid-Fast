@@ -10,7 +10,9 @@ export const dynamic = "force-dynamic";
 const BRAND = "#007a5e";
 
 function money(n: number | null | undefined): string {
-  return `$${(Number(n) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const v = Number(n) || 0;
+  const abs = Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return v < 0 ? `-$${abs}` : `$${abs}`;
 }
 
 function statusStyle(status: string): { bg: string; color: string; label: string } {

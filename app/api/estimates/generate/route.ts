@@ -76,13 +76,14 @@ export async function POST(req: NextRequest) {
   // Load this contractor's pricing defaults (labor rate, markup, expenses)
   const { data: settings } = await admin
     .from("users")
-    .select("labor_rate, markup_percent, expense_flat, show_adjustments")
+    .select("labor_rate, markup_percent, expense_flat, discount_flat, show_adjustments")
     .eq("id", user.id)
     .maybeSingle();
 
   const laborRate = num(settings?.labor_rate);
   const markupPct = num(settings?.markup_percent);
   const expenseFlat = num(settings?.expense_flat);
+  const discountFlat = num(settings?.discount_flat);
   const showAdjustments = settings?.show_adjustments !== false; // default true
 
   // Free-tier gate: 3 estimates, then require Pro
@@ -146,11 +147,12 @@ export async function POST(req: NextRequest) {
   // Apply contractor pricing settings
   const markupAmount = base * (markupPct / 100);
   const expenses = expenseFlat;
-  const grandTotal = base + markupAmount + expenses;
+  const discount = discountFlat;
+  const grandTotal = Math.max(0, base + markupAmount + expenses - discount);
 
   // When adjustments are hidden, fold them into the line prices proportionally
-  // so the visible lines still sum to the marked-up total.
-  const fold = !showAdjustments && base > 0 && markupAmount + expenses > 0;
+  // so the visible lines still sum to the final total.
+  const fold = !showAdjustments && base > 0 && markupAmount + expenses - discount !== 0;
   const factor = fold ? grandTotal / base : 1;
 
   // Insert the estimate header
@@ -229,6 +231,19 @@ export async function POST(req: NextRequest) {
         unit: "job",
         unit_cost: markupAmount,
         total_cost: markupAmount,
+        item_type: "adjustment",
+        sort_order: order++,
+      });
+    }
+    if (discount > 0) {
+      lineItems.push({
+        estimate_id: estimate.id,
+        category: "discount",
+        description: "Discount",
+        quantity: 1,
+        unit: "job",
+        unit_cost: -discount,
+        total_cost: -discount,
         item_type: "adjustment",
         sort_order: order++,
       });

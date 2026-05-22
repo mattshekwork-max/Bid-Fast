@@ -27,6 +27,7 @@ interface UserData {
   labor_rate?: number | null;
   markup_percent?: number | null;
   expense_flat?: number | null;
+  discount_flat?: number | null;
   show_adjustments?: boolean | null;
 }
 
@@ -43,6 +44,7 @@ export default function SettingsPage() {
   const [laborRate, setLaborRate] = useState("");
   const [markupPercent, setMarkupPercent] = useState("");
   const [expenseFlat, setExpenseFlat] = useState("");
+  const [discountFlat, setDiscountFlat] = useState("");
   const [showAdjustments, setShowAdjustments] = useState(true);
   const [savingPricing, setSavingPricing] = useState(false);
 
@@ -61,6 +63,7 @@ export default function SettingsPage() {
         setLaborRate(u.labor_rate != null ? String(u.labor_rate) : "");
         setMarkupPercent(u.markup_percent != null ? String(u.markup_percent) : "");
         setExpenseFlat(u.expense_flat != null ? String(u.expense_flat) : "");
+        setDiscountFlat(u.discount_flat != null ? String(u.discount_flat) : "");
         setShowAdjustments(u.show_adjustments !== false);
       } catch {
         setError("Failed to load user data. Please try again later.");
@@ -81,6 +84,7 @@ export default function SettingsPage() {
           labor_rate: laborRate,
           markup_percent: markupPercent,
           expense_flat: expenseFlat,
+          discount_flat: discountFlat,
           show_adjustments: showAdjustments,
         }),
       });
@@ -180,7 +184,7 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Labor rate ($/hr)</label>
                 <div className="mt-1 flex items-center rounded-md border border-input bg-background px-3">
@@ -216,6 +220,19 @@ export default function SettingsPage() {
                     type="number" inputMode="decimal" min="0" step="1"
                     value={expenseFlat}
                     onChange={(e) => setExpenseFlat(e.target.value)}
+                    placeholder="0"
+                    className="w-full bg-transparent py-2 px-1 text-sm outline-none"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Discount ($)</label>
+                <div className="mt-1 flex items-center rounded-md border border-input bg-background px-3">
+                  <span className="text-muted-foreground text-sm">$</span>
+                  <input
+                    type="number" inputMode="decimal" min="0" step="1"
+                    value={discountFlat}
+                    onChange={(e) => setDiscountFlat(e.target.value)}
                     placeholder="0"
                     className="w-full bg-transparent py-2 px-1 text-sm outline-none"
                   />

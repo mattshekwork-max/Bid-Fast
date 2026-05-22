@@ -23,6 +23,7 @@ export async function PATCH(req: NextRequest) {
     labor_rate: numOrNull(body.labor_rate),
     markup_percent: numOrNull(body.markup_percent),
     expense_flat: numOrNull(body.expense_flat),
+    discount_flat: numOrNull(body.discount_flat),
     show_adjustments: body.show_adjustments !== false,
   };
 
