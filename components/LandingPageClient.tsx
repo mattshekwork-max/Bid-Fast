@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Check, Mic, Zap, Send, FileText, Users, Star } from "lucide-react";
+import { DemoAnimation } from "@/components/DemoAnimation";
 
 const BRAND = "#007a5e";
 
@@ -54,6 +55,10 @@ export function LandingPageClient() {
           </div>
 
           <p className="text-sm text-gray-400 font-medium">No credit card required · 3 free estimates to start · Cancel anytime</p>
+
+          <div className="mt-14">
+            <DemoAnimation />
+          </div>
         </div>
       </section>
 
