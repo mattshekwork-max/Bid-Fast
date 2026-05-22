@@ -15,7 +15,7 @@ type AiEstimate = {
   notes?: string;
 };
 
-function buildSystemPrompt(language: string): string {
+function buildSystemPrompt(language: string, laborRate: number): string {
   let prompt =
     "You are an expert trade contractor estimator. From the job walkthrough, produce a detailed estimate. " +
     "Return ONLY valid JSON with this exact shape: " +
@@ -33,6 +33,9 @@ function buildSystemPrompt(language: string): string {
     "- Express labor as hours × hourly rate where it makes sense (e.g., quantity 16, unit \"hr\", unitCost 75).\n" +
     "- Use unit \"job\" or \"lump\" ONLY for tasks with no natural unit (permits, haul-off, gas-line move, inspections).\n" +
     "- All dollar values are numbers only (no symbols). Use realistic current US market rates.";
+  if (laborRate > 0) {
+    prompt += `\n- Use $${laborRate} per hour as the labor rate for all hourly labor lines.`;
+  }
   if (language === "es") {
     prompt += " Respond entirely in Spanish — all string values in Spanish.";
   }
@@ -70,6 +73,18 @@ export async function POST(req: NextRequest) {
     { onConflict: "id", ignoreDuplicates: true }
   );
 
+  // Load this contractor's pricing defaults (labor rate, markup, expenses)
+  const { data: settings } = await admin
+    .from("users")
+    .select("labor_rate, markup_percent, expense_flat, show_adjustments")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const laborRate = num(settings?.labor_rate);
+  const markupPct = num(settings?.markup_percent);
+  const expenseFlat = num(settings?.expense_flat);
+  const showAdjustments = settings?.show_adjustments !== false; // default true
+
   // Free-tier gate: 3 estimates, then require Pro
   const subscribed = await hasActiveSubscription(admin, user.id);
   if (!subscribed) {
@@ -95,7 +110,7 @@ export async function POST(req: NextRequest) {
     body: JSON.stringify({
       model: "llama-3.3-70b-versatile",
       messages: [
-        { role: "system", content: buildSystemPrompt(language) },
+        { role: "system", content: buildSystemPrompt(language, laborRate) },
         { role: "user", content: transcript },
       ],
       temperature: 0.3,
@@ -124,9 +139,19 @@ export async function POST(req: NextRequest) {
   const laborItems = Array.isArray(ai.laborItems) ? ai.laborItems : [];
   const materials = Array.isArray(ai.materials) ? ai.materials : [];
 
-  const totalLabor = laborItems.reduce((s, i) => s + num(i.quantity) * num(i.unitCost), 0);
-  const totalMaterial = materials.reduce((s, m) => s + num(m.quantity) * num(m.unitPrice), 0);
-  const totalCost = totalLabor + totalMaterial;
+  const rawLabor = laborItems.reduce((s, i) => s + num(i.quantity) * num(i.unitCost), 0);
+  const rawMaterial = materials.reduce((s, m) => s + num(m.quantity) * num(m.unitPrice), 0);
+  const base = rawLabor + rawMaterial;
+
+  // Apply contractor pricing settings
+  const markupAmount = base * (markupPct / 100);
+  const expenses = expenseFlat;
+  const grandTotal = base + markupAmount + expenses;
+
+  // When adjustments are hidden, fold them into the line prices proportionally
+  // so the visible lines still sum to the marked-up total.
+  const fold = !showAdjustments && base > 0 && markupAmount + expenses > 0;
+  const factor = fold ? grandTotal / base : 1;
 
   // Insert the estimate header
   const { data: estimate, error: insertError } = await admin
@@ -137,9 +162,9 @@ export async function POST(req: NextRequest) {
       voice_transcript: transcript,
       parsed_description: ai.description ?? null,
       status: "draft",
-      total_labor_cost: totalLabor,
-      total_material_cost: totalMaterial,
-      total_cost: totalCost,
+      total_labor_cost: rawLabor * factor,
+      total_material_cost: rawMaterial * factor,
+      total_cost: grandTotal,
       client_token: crypto.randomUUID(),
     })
     .select()
@@ -153,7 +178,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Insert priced line items (labor + materials)
+  // Priced line items (labor + materials) — inflated by factor when folding
   const lineItems = [
     ...laborItems.map((i, idx) => ({
       estimate_id: estimate.id,
@@ -161,8 +186,8 @@ export async function POST(req: NextRequest) {
       description: i.description || "Labor",
       quantity: num(i.quantity) || 1,
       unit: i.unit || "hr",
-      unit_cost: num(i.unitCost),
-      total_cost: num(i.quantity) * num(i.unitCost),
+      unit_cost: num(i.unitCost) * factor,
+      total_cost: num(i.quantity) * num(i.unitCost) * factor,
       item_type: "labor",
       sort_order: idx,
     })),
@@ -172,12 +197,44 @@ export async function POST(req: NextRequest) {
       description: m.name || "Material",
       quantity: num(m.quantity) || 1,
       unit: m.unit || "each",
-      unit_cost: num(m.unitPrice),
-      total_cost: num(m.quantity) * num(m.unitPrice),
+      unit_cost: num(m.unitPrice) * factor,
+      total_cost: num(m.quantity) * num(m.unitPrice) * factor,
       item_type: "material",
       sort_order: laborItems.length + idx,
     })),
   ];
+
+  // Visible adjustment lines (only when showing adjustments)
+  if (showAdjustments) {
+    let order = lineItems.length;
+    if (expenses > 0) {
+      lineItems.push({
+        estimate_id: estimate.id,
+        category: "expense",
+        description: "Expenses (gas, fees, disposal)",
+        quantity: 1,
+        unit: "job",
+        unit_cost: expenses,
+        total_cost: expenses,
+        item_type: "adjustment",
+        sort_order: order++,
+      });
+    }
+    if (markupAmount > 0) {
+      lineItems.push({
+        estimate_id: estimate.id,
+        category: "markup",
+        description: `Overhead & profit (${markupPct}%)`,
+        quantity: 1,
+        unit: "job",
+        unit_cost: markupAmount,
+        total_cost: markupAmount,
+        item_type: "adjustment",
+        sort_order: order++,
+      });
+    }
+  }
+
   if (lineItems.length) {
     const { error: liError } = await admin.from("estimate_line_items").insert(lineItems);
     if (liError) console.error("Failed to save line items:", liError);

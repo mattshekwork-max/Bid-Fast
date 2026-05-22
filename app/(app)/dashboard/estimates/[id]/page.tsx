@@ -46,6 +46,7 @@ export default async function EstimateView({ params }: { params: Promise<{ id: s
 
   const labor = (lineItems ?? []).filter((i) => i.item_type === "labor");
   const materials = (lineItems ?? []).filter((i) => i.item_type === "material");
+  const adjustments = (lineItems ?? []).filter((i) => i.item_type === "adjustment");
   const s = statusStyle(estimate.status);
 
   return (
@@ -114,6 +115,21 @@ export default async function EstimateView({ params }: { params: Promise<{ id: s
             <div className="flex justify-between pt-3 mt-1 text-sm font-bold">
               <span className="text-gray-500">Materials subtotal</span>
               <span className="text-gray-900">{money(estimate.total_material_cost)}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Adjustments */}
+        {adjustments.length > 0 && (
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-4">
+            <h2 className="text-xs font-bold uppercase tracking-wide text-gray-400 mb-3">Adjustments</h2>
+            <div className="divide-y divide-gray-100">
+              {adjustments.map((i) => (
+                <div key={i.id} className="flex items-center justify-between py-2.5 text-sm">
+                  <span className="text-gray-800">{i.description}</span>
+                  <span className="font-semibold text-gray-900">{money(i.total_cost)}</span>
+                </div>
+              ))}
             </div>
           </div>
         )}

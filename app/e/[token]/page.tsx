@@ -36,6 +36,7 @@ export default async function PublicEstimate({ params }: { params: Promise<{ tok
 
   const labor = (lineItems ?? []).filter((i) => i.item_type === "labor");
   const materials = (lineItems ?? []).filter((i) => i.item_type === "material");
+  const adjustments = (lineItems ?? []).filter((i) => i.item_type === "adjustment");
   const contractor = [businessUser?.first_name, businessUser?.last_name].filter(Boolean).join(" ");
 
   return (
@@ -88,6 +89,20 @@ export default async function PublicEstimate({ params }: { params: Promise<{ tok
                     <p className="text-gray-400 text-xs">{Number(i.quantity)} {i.unit} × {money(i.unit_cost)}</p>
                   </div>
                   <span className="font-semibold text-gray-900 shrink-0 ml-4">{money(i.total_cost)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {adjustments.length > 0 && (
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-4">
+            <h2 className="text-xs font-bold uppercase tracking-wide text-gray-400 mb-3">Adjustments</h2>
+            <div className="divide-y divide-gray-100">
+              {adjustments.map((i) => (
+                <div key={i.id} className="flex items-center justify-between py-2.5 text-sm">
+                  <span className="text-gray-800">{i.description}</span>
+                  <span className="font-semibold text-gray-900">{money(i.total_cost)}</span>
                 </div>
               ))}
             </div>
