@@ -49,6 +49,18 @@ export async function POST(req: NextRequest) {
 
   const admin = getSupabaseAdmin();
 
+  // Ensure a users row exists (estimates.user_id has a FK to users.id).
+  // Self-heals accounts created before the signup hook, or if it didn't run.
+  await admin.from("users").upsert(
+    {
+      id: user.id,
+      email: user.email ?? `${user.id}@unknown.local`,
+      first_name: (user.user_metadata as Record<string, string> | null)?.first_name ?? null,
+      last_name: (user.user_metadata as Record<string, string> | null)?.last_name ?? null,
+    },
+    { onConflict: "id", ignoreDuplicates: true }
+  );
+
   // Free-tier gate: 3 estimates, then require Pro
   const subscribed = await hasActiveSubscription(admin, user.id);
   if (!subscribed) {
@@ -126,7 +138,10 @@ export async function POST(req: NextRequest) {
 
   if (insertError || !estimate) {
     console.error("Failed to save estimate:", insertError);
-    return NextResponse.json({ error: "Failed to save estimate" }, { status: 500 });
+    return NextResponse.json(
+      { error: `Failed to save estimate: ${insertError?.message ?? "unknown error"}` },
+      { status: 500 }
+    );
   }
 
   // Insert priced line items (labor + materials)
