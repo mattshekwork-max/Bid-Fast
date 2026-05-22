@@ -95,6 +95,11 @@ export default function NewEstimatePage() {
           body: JSON.stringify({ transcript: text, language: lang }),
         });
         const gJson = await gRes.json();
+        if (gRes.status === 403 && gJson.upgrade) {
+          // Free limit reached — send them straight to the Pro page
+          router.push("/upgrade");
+          return;
+        }
         if (!gRes.ok) throw new Error(gJson.error ?? "Generation failed");
 
         setPhase("done");
