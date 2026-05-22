@@ -5,17 +5,21 @@ import { Mic, Loader2, Check } from "lucide-react";
 
 const BRAND = "#007a5e";
 
-const WORDS = ["I", "need", "30", "squares", "—", "tear-off", "and", "re-roof."];
+const WORDS = ["I", "need", "a", "30-square", "comp", "shingle", "tear-off", "and", "full", "re-roof."];
+
 const ITEMS = [
   { label: "Tear-off & disposal", value: "$1,800" },
-  { label: "Underlayment & flashing", value: "$950" },
+  { label: "Deck repair & inspection", value: "$650" },
   { label: "Architectural shingles", value: "$4,200" },
+  { label: "Synthetic underlayment", value: "$720" },
+  { label: "Drip edge & flashing", value: "$480" },
+  { label: "Ridge vent & caps", value: "$540" },
   { label: "Install labor", value: "$3,600" },
 ];
-const TOTAL = "$10,550";
+const TOTAL = "$11,990";
 
-const STEP_MS = 360;
-const TOTAL_STEPS = 28;
+const STEP_MS = 280;
+const TOTAL_STEPS = 32;
 
 export function DemoAnimation() {
   const [step, setStep] = useState(0);
@@ -26,13 +30,13 @@ export function DemoAnimation() {
   }, []);
 
   // Scene windows
-  const recording = step < 9;        // 0–8  record + transcribe
-  const building = step >= 9 && step < 12; // 9–11 building
-  const bid = step >= 12;            // 12–27 finished bid
+  const recording = step < 11;            // 0–10  record + transcribe
+  const building = step >= 11 && step < 14; // 11–13 building
+  const bid = step >= 14;                  // 14–31 finished bid
 
-  const wordsShown = Math.min(WORDS.length, step);
-  const itemsShown = bid ? Math.min(ITEMS.length, Math.floor((step - 12) / 1.5) + 1) : 0;
-  const showTotal = step >= 21;
+  const wordsShown = Math.min(WORDS.length, step + 1);
+  const itemsShown = bid ? Math.min(ITEMS.length, step - 13) : 0;
+  const showTotal = step >= 23;
 
   return (
     <div className="relative w-full max-w-sm mx-auto">
@@ -47,11 +51,11 @@ export function DemoAnimation() {
         ))}
       </div>
 
-      <div className="relative h-72 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+      <div className="relative h-80 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
 
         {/* SCENE 1 — Recording */}
         <div
-          className="absolute inset-0 flex flex-col items-center justify-center px-6 transition-opacity duration-500"
+          className="absolute inset-0 flex flex-col items-center justify-center px-6 transition-opacity duration-300"
           style={{ opacity: recording ? 1 : 0, pointerEvents: "none" }}
         >
           <div className="relative mb-5">
@@ -69,7 +73,7 @@ export function DemoAnimation() {
           <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-2">Recording…</p>
           <p className="text-center text-gray-800 font-medium leading-snug min-h-[2.5rem]">
             {WORDS.slice(0, wordsShown).map((w, i) => (
-              <span key={i} className="transition-opacity duration-200">{w} </span>
+              <span key={i}>{w} </span>
             ))}
             <span className="inline-block w-0.5 h-4 align-middle animate-pulse" style={{ background: BRAND }} />
           </p>
@@ -77,7 +81,7 @@ export function DemoAnimation() {
 
         {/* SCENE 2 — Building */}
         <div
-          className="absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-500"
+          className="absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-300"
           style={{ opacity: building ? 1 : 0, pointerEvents: "none" }}
         >
           <Loader2 className="w-9 h-9 animate-spin mb-3" style={{ color: BRAND }} />
@@ -86,10 +90,10 @@ export function DemoAnimation() {
 
         {/* SCENE 3 — Finished bid */}
         <div
-          className="absolute inset-0 flex flex-col px-5 py-5 transition-opacity duration-500"
+          className="absolute inset-0 flex flex-col px-5 py-4 transition-opacity duration-300"
           style={{ opacity: bid ? 1 : 0, pointerEvents: "none" }}
         >
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-2.5">
             <div className="flex items-center gap-1.5">
               <Check className="w-4 h-4" style={{ color: BRAND }} />
               <span className="text-sm font-black text-gray-900">Comp Shingle Re-Roof</span>
@@ -99,14 +103,14 @@ export function DemoAnimation() {
             </span>
           </div>
 
-          <div className="flex-1 space-y-1.5">
+          <div className="flex-1 space-y-1">
             {ITEMS.map((it, i) => (
               <div
                 key={it.label}
-                className="flex items-center justify-between text-xs transition-all duration-300"
+                className="flex items-center justify-between text-xs transition-all duration-200"
                 style={{
                   opacity: i < itemsShown ? 1 : 0,
-                  transform: i < itemsShown ? "translateY(0)" : "translateY(6px)",
+                  transform: i < itemsShown ? "translateY(0)" : "translateY(5px)",
                 }}
               >
                 <span className="text-gray-600">{it.label}</span>
@@ -116,7 +120,7 @@ export function DemoAnimation() {
           </div>
 
           <div
-            className="mt-3 rounded-xl px-4 py-3 flex items-center justify-between text-white transition-all duration-500"
+            className="mt-2.5 rounded-xl px-4 py-2.5 flex items-center justify-between text-white transition-all duration-300"
             style={{
               background: BRAND,
               opacity: showTotal ? 1 : 0,
