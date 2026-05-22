@@ -16,7 +16,7 @@ const SOLO_FEATURES = [
 
 const PRO_FEATURES = [
   "Everything in Solo",
-  "Team seats (+$15/mo per contractor)",
+  "Team seats (+$10/mo per contractor)",
   "Per-user pricing configuration",
   "Shared estimate dashboard",
   "Seat billing management",

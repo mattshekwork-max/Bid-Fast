@@ -131,7 +131,7 @@ export function LandingPageClient() {
               { icon: Zap, title: "AI estimate in seconds", body: "Labor hours, materials, and line-item costs — generated from your voice." },
               { icon: FileText, title: "PDF export", body: "Download a clean, branded estimate ready to hand to any client." },
               { icon: Send, title: "Client accept/decline", body: "Send a link. Client approves with one tap. You get notified instantly." },
-              { icon: Users, title: "Team seats", body: "Add contractors to your account. Each seat is $15/mo, billed to your plan." },
+              { icon: Users, title: "Team seats", body: "Add contractors to your account. Each seat is $10/mo, billed to your plan." },
               { icon: Star, title: "EN + ES support", body: "Full Spanish language support — record and receive estimates in Spanish." },
             ].map(({ icon: Icon, title, body }) => (
               <div key={title} className="p-6 rounded-xl bg-white border border-gray-200 hover:border-green-200 hover:shadow-sm transition-all">
@@ -198,7 +198,7 @@ export function LandingPageClient() {
               <div className="text-4xl font-black text-white mb-1">$49<span className="text-xl font-semibold text-gray-500">/mo</span></div>
               <p className="text-gray-500 text-sm mb-6">Billed monthly</p>
               <ul className="space-y-3 mb-8 flex-1">
-                {["Everything in Solo", "Team seats (+$15/seat)", "Per-user pricing config", "Shared estimate dashboard", "Seat billing management"].map(f => (
+                {["Everything in Solo", "Team seats (+$10/seat)", "Per-user pricing config", "Shared estimate dashboard", "Seat billing management"].map(f => (
                   <li key={f} className="flex items-start gap-2 text-sm text-gray-300">
                     <Check className="w-4 h-4 shrink-0 mt-0.5 text-green-400" />{f}
                   </li>
