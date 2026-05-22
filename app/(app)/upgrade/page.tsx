@@ -1,133 +1,156 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check } from "lucide-react";
-import { StripeSetupRequired } from "@/components/StripeSetupRequired";
-import { PolarSetupRequired } from "@/components/PolarSetupRequired";
-import { toast } from "sonner";
+import { Check, Mic, FileText, Send, Users } from "lucide-react";
 
-const PAYMENT_PROVIDER = process.env.NEXT_PUBLIC_PAYMENT_PROVIDER || "stripe";
+const BRAND = "#007a5e";
+
+const SOLO_FEATURES = [
+  "Unlimited estimates — no monthly cap",
+  "PDF export with your company branding",
+  "Email delivery to clients",
+  "Client Accept / Decline link",
+  "Priority support",
+];
+
+const PRO_FEATURES = [
+  "Everything in Solo",
+  "Team seats (+$15/mo per contractor)",
+  "Per-user pricing configuration",
+  "Shared estimate dashboard",
+  "Seat billing management",
+];
 
 export default function UpgradePage() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const [stripeConfigured, setStripeConfigured] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState<"solo" | "pro" | null>(null);
 
-  useEffect(() => {
-    const configUrl =
-      PAYMENT_PROVIDER === "polar"
-        ? "/api/polar/config-check"
-        : "/api/stripe/config-check";
-    fetch(configUrl)
-      .then((res) => res.json())
-      .then((data) => setStripeConfigured(data.configured))
-      .catch(() => setStripeConfigured(false));
-  }, []);
-
-  const handleUpgrade = async () => {
-    setIsLoading(true);
+  async function handleCheckout(tier: "solo" | "pro") {
+    setLoading(tier);
     try {
-      const checkoutUrl =
-        PAYMENT_PROVIDER === "polar"
-          ? "/api/polar/create-checkout"
-          : "/api/stripe/create-checkout-session";
-      const response = await fetch(checkoutUrl, {
+      const res = await fetch("/api/stripe/create-checkout-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tier }),
       });
-
-      const data = await response.json();
-
+      const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
       } else {
-        toast.error(data.error || "Failed to start checkout. Please try again.");
-        setIsLoading(false);
+        alert(data.error || "Something went wrong. Please try again.");
+        setLoading(null);
       }
     } catch {
-      toast.error("Something went wrong. Please try again.");
-      setIsLoading(false);
+      alert("Something went wrong. Please try again.");
+      setLoading(null);
     }
-  };
-
-  // Customize these features for each product
-  const features = [
-    "Unlimited access to all features",
-    "Priority customer support",
-    "Advanced analytics and insights",
-    "Team collaboration tools",
-    "API access for integrations",
-    "Custom branding options",
-  ];
-
-  if (stripeConfigured === null) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
-      </div>
-    );
-  }
-
-  if (!stripeConfigured) {
-    return PAYMENT_PROVIDER === "polar" ? (
-      <PolarSetupRequired />
-    ) : (
-      <StripeSetupRequired />
-    );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full max-w-lg">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold">Upgrade to Pro</CardTitle>
-          <p className="text-muted-foreground mt-2">
-            Unlock all premium features
+    <div className="min-h-screen bg-[#f9fafb] px-4 py-16">
+      <div className="max-w-4xl mx-auto">
+
+        {/* Header */}
+        <div className="text-center mb-14">
+          <p className="text-sm font-bold uppercase tracking-wide mb-3" style={{ color: BRAND }}>Upgrade Bid.Fast</p>
+          <h1 className="text-4xl md:text-5xl font-black text-gray-900 mb-4">
+            One estimate won pays for<br />a year of Pro.
+          </h1>
+          <p className="text-lg text-gray-500 max-w-xl mx-auto">
+            You&apos;ve used your free estimates. Pick the plan that fits your business and keep bidding.
           </p>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="text-center">
-            <div className="text-5xl font-bold">$5</div>
-            <div className="text-muted-foreground mt-1">per month</div>
+        </div>
+
+        {/* Plans */}
+        <div className="grid md:grid-cols-2 gap-6 mb-10">
+
+          {/* Solo */}
+          <div className="bg-white rounded-2xl border-2 p-8 flex flex-col relative" style={{ borderColor: BRAND }}>
+            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold text-white" style={{ background: BRAND }}>
+              Most Popular
+            </div>
+            <p className="text-sm font-bold uppercase tracking-wide mb-1" style={{ color: BRAND }}>Solo</p>
+            <div className="flex items-baseline gap-1 mb-1">
+              <span className="text-5xl font-black text-gray-900">$19</span>
+              <span className="text-gray-400 font-medium">/mo</span>
+            </div>
+            <p className="text-sm text-gray-400 mb-8">Perfect for independent contractors</p>
+
+            <ul className="space-y-3 mb-10 flex-1">
+              {SOLO_FEATURES.map(f => (
+                <li key={f} className="flex items-start gap-3 text-sm text-gray-700">
+                  <Check className="w-4 h-4 shrink-0 mt-0.5" style={{ color: BRAND }} />
+                  {f}
+                </li>
+              ))}
+            </ul>
+
+            <button
+              onClick={() => handleCheckout("solo")}
+              disabled={loading !== null}
+              className="w-full py-4 rounded-xl font-bold text-white text-base transition-all hover:opacity-90 active:scale-95 disabled:opacity-60"
+              style={{ background: BRAND }}
+            >
+              {loading === "solo" ? "Redirecting…" : "Start Solo — $19/mo →"}
+            </button>
           </div>
 
-          <div className="space-y-3">
-            {features.map((feature, index) => (
-              <div key={index} className="flex items-start gap-3">
-                <Check className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                <p>{feature}</p>
-              </div>
-            ))}
-          </div>
+          {/* Pro */}
+          <div className="bg-gray-900 rounded-2xl border border-gray-800 p-8 flex flex-col">
+            <p className="text-sm font-bold uppercase tracking-wide text-gray-400 mb-1">Pro</p>
+            <div className="flex items-baseline gap-1 mb-1">
+              <span className="text-5xl font-black text-white">$39</span>
+              <span className="text-gray-500 font-medium">/mo</span>
+            </div>
+            <p className="text-sm text-gray-500 mb-8">For growing teams and multi-crew operations</p>
 
-          <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground">
-            <p>
-              <strong>Cancel anytime.</strong> No long-term commitments. Your
-              subscription renews monthly.
-            </p>
+            <ul className="space-y-3 mb-10 flex-1">
+              {PRO_FEATURES.map(f => (
+                <li key={f} className="flex items-start gap-3 text-sm text-gray-300">
+                  <Check className="w-4 h-4 shrink-0 mt-0.5 text-green-400" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+
+            <button
+              onClick={() => handleCheckout("pro")}
+              disabled={loading !== null}
+              className="w-full py-4 rounded-xl font-bold text-gray-900 bg-white text-base transition-all hover:bg-gray-100 active:scale-95 disabled:opacity-60"
+            >
+              {loading === "pro" ? "Redirecting…" : "Start Pro — $39/mo →"}
+            </button>
           </div>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-3">
-          <Button
-            onClick={handleUpgrade}
-            disabled={isLoading}
-            className="w-full h-12 text-lg"
-          >
-            {isLoading ? "Loading..." : "Upgrade Now"}
-          </Button>
-          <Button
+        </div>
+
+        {/* Trust signals */}
+        <div className="grid grid-cols-3 gap-4 text-center mb-10">
+          {[
+            { icon: Mic, label: "Voice-first estimating" },
+            { icon: FileText, label: "Branded PDF export" },
+            { icon: Send, label: "Client accept / decline" },
+          ].map(({ icon: Icon, label }) => (
+            <div key={label} className="bg-white rounded-xl p-4 border border-gray-200">
+              <Icon className="w-5 h-5 mx-auto mb-2" style={{ color: BRAND }} />
+              <p className="text-xs font-semibold text-gray-600">{label}</p>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-center text-sm text-gray-400 mb-8">
+          Cancel anytime · No setup fees · Secure checkout via Stripe
+        </p>
+
+        <div className="text-center">
+          <button
             onClick={() => router.back()}
-            variant="ghost"
-            className="w-full"
-            disabled={isLoading}
+            className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
           >
-            Maybe Later
-          </Button>
-        </CardFooter>
-      </Card>
+            ← Go back
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
