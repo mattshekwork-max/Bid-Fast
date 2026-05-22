@@ -16,9 +16,12 @@ type AiEstimate = {
   notes?: string;
 };
 
-function buildSystemPrompt(language: string, laborRate: number, priceReference: string): string {
+function buildSystemPrompt(language: string, laborRate: number, priceReference: string, trade: string): string {
   let prompt =
-    "You are an expert trade contractor estimator. From the job walkthrough, produce a detailed estimate. " +
+    (trade
+      ? `You are an expert estimator for a ${trade} contractor. Use the units, line items, and market rates standard for the ${trade} trade. `
+      : "You are an expert trade contractor estimator. ") +
+    "From the job walkthrough, produce a detailed estimate. " +
     "Return ONLY valid JSON with this exact shape: " +
     '{ "title": string, "description": string, ' +
     '"laborItems": [{ "description": string, "quantity": number, "unit": string, "unitCost": number }], ' +
@@ -90,7 +93,7 @@ export async function POST(req: NextRequest) {
   // Load this contractor's pricing defaults (labor rate, markup, expenses)
   const { data: settings } = await admin
     .from("users")
-    .select("labor_rate, markup_percent, expense_flat, discount_flat, show_adjustments")
+    .select("labor_rate, markup_percent, expense_flat, discount_flat, show_adjustments, trade")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -99,6 +102,7 @@ export async function POST(req: NextRequest) {
   const expenseFlat = num(settings?.expense_flat);
   const discountFlat = num(settings?.discount_flat);
   const showAdjustments = settings?.show_adjustments !== false; // default true
+  const trade = (settings?.trade as string) ?? "";
 
   // Contractor's custom prices override the built-in catalog
   const { data: customPrices } = await admin
@@ -132,7 +136,7 @@ export async function POST(req: NextRequest) {
     body: JSON.stringify({
       model: "llama-3.3-70b-versatile",
       messages: [
-        { role: "system", content: buildSystemPrompt(language, laborRate, priceReference) },
+        { role: "system", content: buildSystemPrompt(language, laborRate, priceReference, trade) },
         { role: "user", content: transcript },
       ],
       temperature: 0.3,

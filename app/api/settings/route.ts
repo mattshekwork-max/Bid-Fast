@@ -25,6 +25,7 @@ export async function PATCH(req: NextRequest) {
     expense_flat: numOrNull(body.expense_flat),
     discount_flat: numOrNull(body.discount_flat),
     show_adjustments: body.show_adjustments !== false,
+    trade: typeof body.trade === "string" && body.trade ? body.trade : null,
   };
 
   const { error } = await admin.from("users").update(update).eq("id", user.id);

@@ -29,9 +29,23 @@ interface UserData {
   expense_flat?: number | null;
   discount_flat?: number | null;
   show_adjustments?: boolean | null;
+  trade?: string | null;
+}
+
+interface PriceItem {
+  id: number;
+  item_name: string;
+  unit: string;
+  unit_price: number;
 }
 
 const BRAND = "#007a5e";
+
+const TRADES = [
+  "General Contractor", "Painter", "Concrete / Flatwork", "Plumber", "Electrician",
+  "Paver / Hardscape", "Roofer", "HVAC", "Landscaper", "Carpenter / Framing",
+  "Drywall", "Flooring", "Solar", "Fencing", "Other",
+];
 
 export default function SettingsPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -46,7 +60,13 @@ export default function SettingsPage() {
   const [expenseFlat, setExpenseFlat] = useState("");
   const [discountFlat, setDiscountFlat] = useState("");
   const [showAdjustments, setShowAdjustments] = useState(true);
+  const [trade, setTrade] = useState("");
   const [savingPricing, setSavingPricing] = useState(false);
+
+  // Price book
+  const [priceItems, setPriceItems] = useState<PriceItem[]>([]);
+  const [newItem, setNewItem] = useState({ item_name: "", unit: "each", unit_price: "" });
+  const [addingItem, setAddingItem] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -65,6 +85,13 @@ export default function SettingsPage() {
         setExpenseFlat(u.expense_flat != null ? String(u.expense_flat) : "");
         setDiscountFlat(u.discount_flat != null ? String(u.discount_flat) : "");
         setShowAdjustments(u.show_adjustments !== false);
+        setTrade(u.trade ?? "");
+
+        const pbRes = await fetch("/api/price-book");
+        if (pbRes.ok) {
+          const pb = await pbRes.json();
+          setPriceItems(pb.items ?? []);
+        }
       } catch {
         setError("Failed to load user data. Please try again later.");
       } finally {
@@ -73,6 +100,33 @@ export default function SettingsPage() {
     };
     fetchData();
   }, []);
+
+  async function addPriceItem() {
+    if (!newItem.item_name.trim()) return;
+    setAddingItem(true);
+    try {
+      const res = await fetch("/api/price-book", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newItem),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || "Could not add"); return; }
+      setPriceItems((prev) => [...prev, data.item].sort((a, b) => a.item_name.localeCompare(b.item_name)));
+      setNewItem({ item_name: "", unit: "each", unit_price: "" });
+    } catch {
+      toast.error("Could not add item");
+    } finally {
+      setAddingItem(false);
+    }
+  }
+
+  async function deletePriceItem(id: number) {
+    const prev = priceItems;
+    setPriceItems((p) => p.filter((i) => i.id !== id));
+    const res = await fetch(`/api/price-book/${id}`, { method: "DELETE" });
+    if (!res.ok) { toast.error("Could not remove"); setPriceItems(prev); }
+  }
 
   async function savePricing() {
     setSavingPricing(true);
@@ -86,6 +140,7 @@ export default function SettingsPage() {
           expense_flat: expenseFlat,
           discount_flat: discountFlat,
           show_adjustments: showAdjustments,
+          trade,
         }),
       });
       const data = await res.json();
@@ -184,6 +239,19 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Your trade</label>
+              <select
+                value={trade}
+                onChange={(e) => setTrade(e.target.value)}
+                className="mt-1 w-full sm:w-72 rounded-md border border-input bg-background py-2 px-3 text-sm outline-none"
+              >
+                <option value="">Select your trade…</option>
+                {TRADES.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+              <p className="text-xs text-muted-foreground mt-1">Tunes every estimate to your trade&apos;s units, line items, and rates.</p>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Labor rate ($/hr)</label>
@@ -258,6 +326,73 @@ export default function SettingsPage() {
             <Button onClick={savePricing} disabled={savingPricing} style={{ background: BRAND }}>
               {savingPricing ? "Saving…" : "Save defaults"}
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Price Book */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Price Book</CardTitle>
+            <CardDescription>
+              Your real prices for materials &amp; equipment. The AI uses these exact rates when a job matches — so estimates reflect your costs, not guesses. Anything not listed is estimated for your trade.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {priceItems.length > 0 && (
+              <div className="divide-y divide-border rounded-md border border-border">
+                {priceItems.map((it) => (
+                  <div key={it.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+                    <span className="font-medium truncate">{it.item_name}</span>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-muted-foreground">${Number(it.unit_price).toLocaleString()} / {it.unit}</span>
+                      <button
+                        onClick={() => deletePriceItem(it.id)}
+                        className="text-xs text-red-500 hover:text-red-700 font-semibold"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-end">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Item</label>
+                <input
+                  value={newItem.item_name}
+                  onChange={(e) => setNewItem({ ...newItem, item_name: e.target.value })}
+                  placeholder="e.g. Interior paint (Sherwin)"
+                  className="mt-1 w-full rounded-md border border-input bg-background py-2 px-3 text-sm outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Unit</label>
+                <input
+                  value={newItem.unit}
+                  onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
+                  placeholder="gal"
+                  className="mt-1 w-24 rounded-md border border-input bg-background py-2 px-3 text-sm outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Price ($)</label>
+                <input
+                  type="number" inputMode="decimal" min="0"
+                  value={newItem.unit_price}
+                  onChange={(e) => setNewItem({ ...newItem, unit_price: e.target.value })}
+                  placeholder="55"
+                  className="mt-1 w-28 rounded-md border border-input bg-background py-2 px-3 text-sm outline-none"
+                />
+              </div>
+              <Button onClick={addPriceItem} disabled={addingItem || !newItem.item_name.trim()} style={{ background: BRAND }}>
+                {addingItem ? "Adding…" : "Add"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Common big-ticket items (water heaters, HVAC units, panels, etc.) are already built in — add your trade&apos;s items or override any price here.
+            </p>
           </CardContent>
         </Card>
 
