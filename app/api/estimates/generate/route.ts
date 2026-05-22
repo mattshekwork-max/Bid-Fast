@@ -22,8 +22,17 @@ function buildSystemPrompt(language: string): string {
     '{ "title": string, "description": string, ' +
     '"laborItems": [{ "description": string, "quantity": number, "unit": string, "unitCost": number }], ' +
     '"materials": [{ "name": string, "quantity": number, "unit": string, "unitPrice": number, "supplierNote": string }], ' +
-    '"notes": string }. ' +
-    "unitCost and unitPrice are per-unit dollar amounts (numbers only, no symbols). Use realistic current market rates.";
+    '"notes": string }.\n\n' +
+    "QUANTITY RULES (important):\n" +
+    "- Set quantity to the REAL measured amount and unitCost/unitPrice to the TRUE per-unit rate, so quantity × rate = the line total. " +
+    "Never collapse a measurable item into quantity 1 with unit \"job\".\n" +
+    "- Put ONLY the item name in \"description\"/\"name\". Never put the quantity inside the name — the quantity and unit fields cover that. " +
+    'Write "Cabinets" not "Cabinets (22 linear feet)".\n' +
+    "- Examples: cabinets → quantity 22, unit \"linear ft\", unitPrice ~545. Countertops → quantity 55, unit \"sq ft\", unitPrice ~82. " +
+    "Comp shingles → quantity 30, unit \"square\", unitPrice ~140. Recessed lights → quantity 6, unit \"each\", unitCost ~50.\n" +
+    "- Express labor as hours × hourly rate where it makes sense (e.g., quantity 16, unit \"hr\", unitCost 75).\n" +
+    "- Use unit \"job\" or \"lump\" ONLY for tasks with no natural unit (permits, haul-off, gas-line move, inspections).\n" +
+    "- All dollar values are numbers only (no symbols). Use realistic current US market rates.";
   if (language === "es") {
     prompt += " Respond entirely in Spanish — all string values in Spanish.";
   }
