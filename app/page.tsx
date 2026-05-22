@@ -4,12 +4,12 @@ import type { Metadata } from "next";
 import { LandingPageClient } from "@/components/LandingPageClient";
 
 export const metadata: Metadata = {
-  title: 'JobCedar',
-  description: 'Describe any job by voice. Foreman gives you material lists, cost estimates, crew schedules, and permit info instantly. Built for tradespeople who\'d rather be on the jobsite than behind a desk.',
+  title: 'Bid.Fast — Voice-to-Estimate for Trade Contractors',
+  description: 'Record a job walkthrough on your phone and get a complete labor + materials estimate in seconds — then send it to your client with one tap. Built for trade contractors.',
   openGraph: {
-    title: 'JobCedar',
-    description: 'Describe any job by voice. Foreman gives you material lists, cost estimates, crew schedules, and permit info instantly. Built for tradespeople who\'d rather be on the jobsite than behind a desk.',
-    url: process.env.NEXT_PUBLIC_APP_URL || 'https://example.com',
+    title: 'Bid.Fast — Voice-to-Estimate for Trade Contractors',
+    description: 'Record a job walkthrough on your phone and get a complete labor + materials estimate in seconds — then send it to your client with one tap.',
+    url: process.env.NEXT_PUBLIC_APP_URL || 'https://bid-fast-xi.vercel.app',
     type: 'website',
   },
 };
