@@ -32,7 +32,13 @@ function buildSystemPrompt(language: string, laborRate: number): string {
     "Comp shingles → quantity 30, unit \"square\", unitPrice ~140. Recessed lights → quantity 6, unit \"each\", unitCost ~50.\n" +
     "- Express labor as hours × hourly rate where it makes sense (e.g., quantity 16, unit \"hr\", unitCost 75).\n" +
     "- Use unit \"job\" or \"lump\" ONLY for tasks with no natural unit (permits, haul-off, gas-line move, inspections).\n" +
-    "- All dollar values are numbers only (no symbols). Use realistic current US market rates.";
+    "- All dollar values are numbers only (no symbols).\n\n" +
+    "PRICING LEVEL (important): This is a PAID professional contractor bid, not a DIY budget. " +
+    "Price at full retail contractor rates a licensed pro would actually charge a client. " +
+    "Charge retail material prices (what the client pays, marked up above supplier cost), and bill labor at professional crew rates. " +
+    "Account for prep, setup, cleanup, mobilization, and don't undercount labor hours. " +
+    "When a rate could fall within a range, choose the UPPER end of the realistic current US market range. " +
+    "Do NOT lowball — underpricing loses the contractor money.";
   if (laborRate > 0) {
     prompt += `\n- Use $${laborRate} per hour as the labor rate for all hourly labor lines.`;
   }

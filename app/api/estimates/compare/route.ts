@@ -18,7 +18,11 @@ function buildPrompt(language: string): string {
     "QUANTITY RULES: Set quantity to the REAL measured amount and unitCost/unitPrice to the TRUE per-unit rate so quantity × rate = the line total. " +
     'Put ONLY the item name in "description"/"name" (no quantity in the label). ' +
     'Use unit "job"/"lump" only for unit-less tasks (permits, haul-off). ' +
-    "All dollar values are numbers only. Use realistic current US market rates.";
+    "All dollar values are numbers only.\n\n" +
+    "PRICING LEVEL: This is a PAID professional contractor bid, not a DIY budget. Price at full retail contractor rates a licensed pro " +
+    "would charge a client — retail material prices (marked up above supplier cost) and professional crew labor rates. Account for prep, " +
+    "setup, cleanup, and mobilization; don't undercount hours. When a rate could fall in a range, choose the UPPER end of the realistic " +
+    "current US market range. Do NOT lowball.";
   if (language === "es") prompt += " Respond entirely in Spanish — all string values in Spanish.";
   return prompt;
 }
