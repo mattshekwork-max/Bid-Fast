@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { ShareLink } from "./ShareLink";
 
 export const dynamic = "force-dynamic";
 
@@ -122,6 +123,9 @@ export default async function EstimateView({ params }: { params: Promise<{ id: s
           <span className="text-lg font-bold">Total</span>
           <span className="text-3xl font-black">{money(estimate.total_cost)}</span>
         </div>
+
+        {/* Share with client */}
+        {estimate.client_token && <ShareLink token={estimate.client_token} />}
 
         {/* Transcript */}
         {estimate.voice_transcript && (
