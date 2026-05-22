@@ -13,7 +13,6 @@ const PRO_FEATURES = [
   "Email delivery to clients",
   "Client Accept / Decline link",
   "Full Spanish (EN + ES) support",
-  "Team seats — add contractors at $10/mo each",
   "Priority support",
 ];
 

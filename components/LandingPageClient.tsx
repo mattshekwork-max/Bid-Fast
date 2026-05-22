@@ -131,7 +131,7 @@ export function LandingPageClient() {
               { icon: Zap, title: "AI estimate in seconds", body: "Labor hours, materials, and line-item costs — generated from your voice." },
               { icon: FileText, title: "PDF export", body: "Download a clean, branded estimate ready to hand to any client." },
               { icon: Send, title: "Client accept/decline", body: "Send a link. Client approves with one tap. You get notified instantly." },
-              { icon: Users, title: "Team seats", body: "Add contractors to your account. Each seat is $10/mo, billed to your plan." },
+              { icon: Users, title: "Estimate dashboard", body: "Every bid you've sent in one place. Track what's pending, accepted, or declined." },
               { icon: Star, title: "EN + ES support", body: "Full Spanish language support — record and receive estimates in Spanish." },
             ].map(({ icon: Icon, title, body }) => (
               <div key={title} className="p-6 rounded-xl bg-white border border-gray-200 hover:border-green-200 hover:shadow-sm transition-all">
@@ -181,7 +181,7 @@ export function LandingPageClient() {
               <div className="text-4xl font-black text-gray-900 mb-1">$29<span className="text-xl font-semibold text-gray-400">/mo</span></div>
               <p className="text-gray-400 text-sm mb-6">Unlimited estimates, billed monthly</p>
               <ul className="space-y-3 mb-8 flex-1">
-                {["Unlimited estimates", "PDF export + company branding", "Email delivery to clients", "Full EN + ES support", "Team seats (+$10/seat)", "Priority support"].map(f => (
+                {["Unlimited estimates", "PDF export + company branding", "Email delivery to clients", "Full EN + ES support", "Client accept / decline", "Priority support"].map(f => (
                   <li key={f} className="flex items-start gap-2 text-sm text-gray-600">
                     <Check className="w-4 h-4 shrink-0 mt-0.5" style={{ color: BRAND }} />{f}
                   </li>
