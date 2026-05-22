@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { hasActiveSubscription } from "@/lib/subscription";
+import { buildPriceReference } from "@/lib/price-catalog";
 
 const FREE_ESTIMATE_LIMIT = 3;
 
@@ -15,7 +16,7 @@ type AiEstimate = {
   notes?: string;
 };
 
-function buildSystemPrompt(language: string, laborRate: number): string {
+function buildSystemPrompt(language: string, laborRate: number, priceReference: string): string {
   let prompt =
     "You are an expert trade contractor estimator. From the job walkthrough, produce a detailed estimate. " +
     "Return ONLY valid JSON with this exact shape: " +
@@ -41,6 +42,13 @@ function buildSystemPrompt(language: string, laborRate: number): string {
     "Do NOT lowball — underpricing loses the contractor money.";
   if (laborRate > 0) {
     prompt += `\n- Use $${laborRate} per hour as the labor rate for all hourly labor lines.`;
+  }
+  if (priceReference) {
+    prompt +=
+      "\n\nKNOWN MATERIAL/EQUIPMENT PRICES — when a material or piece of equipment matches one of these " +
+      "(including obvious synonyms, e.g. \"Tesla battery\" = Tesla Powerwall), use this unit price exactly. " +
+      "These are equipment/material costs only — still add labor separately. Estimate anything not listed.\n" +
+      priceReference;
   }
   if (language === "es") {
     prompt += " Respond entirely in Spanish — all string values in Spanish.";
@@ -92,6 +100,13 @@ export async function POST(req: NextRequest) {
   const discountFlat = num(settings?.discount_flat);
   const showAdjustments = settings?.show_adjustments !== false; // default true
 
+  // Contractor's custom prices override the built-in catalog
+  const { data: customPrices } = await admin
+    .from("price_book")
+    .select("item_name, unit, unit_price")
+    .eq("user_id", user.id);
+  const priceReference = buildPriceReference(customPrices ?? []);
+
   // Free-tier gate: 3 estimates, then require Pro
   const subscribed = await hasActiveSubscription(admin, user.id);
   if (!subscribed) {
@@ -117,7 +132,7 @@ export async function POST(req: NextRequest) {
     body: JSON.stringify({
       model: "llama-3.3-70b-versatile",
       messages: [
-        { role: "system", content: buildSystemPrompt(language, laborRate) },
+        { role: "system", content: buildSystemPrompt(language, laborRate, priceReference) },
         { role: "user", content: transcript },
       ],
       temperature: 0.3,
